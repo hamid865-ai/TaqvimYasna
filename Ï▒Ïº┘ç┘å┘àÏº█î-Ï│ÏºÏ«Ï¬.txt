@@ -1,0 +1,23 @@
+تقویم یسنا — پروژه نسخه اندروید
+
+این پوشه سورس پروژه است؛ فایل APK در این محیط ساخته نشده است.
+
+ساخت APK در لینوکس یا WSL:
+1) Python 3 و Java JDK 17 را نصب کنید.
+2) دستورها:
+   python3 -m pip install --user buildozer
+   sudo apt update
+   sudo apt install -y git zip unzip openjdk-17-jdk python3-pip python3-venv autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+3) وارد پوشه پروژه شوید و اجرا کنید:
+   buildozer android debug
+4) پس از پایان موفق، APK داخل پوشه bin ساخته می‌شود.
+5) فایل APK را به گوشی منتقل و نصب کنید. ممکن است لازم باشد اجازه نصب برنامه از این منبع را در تنظیمات اندروید بدهید.
+
+نام نمایشی برنامه: تقویم یسنا
+شناسه بسته: ir.yasna.taqvimyasna
+
+نکات:
+- اولین ساخت به اینترنت نیاز دارد و ممکن است طول بکشد چون SDK/NDK دانلود می‌شود.
+- برای ساخت نهایی/انتشار، کلید امضای release جداگانه لازم است.
+- مکان‌یابی این نسخه بر اساس IP و تقریبی است، نه GPS دقیق.
+- اوقات شرعی و رویدادهای فهرست‌شده فعلاً تقریبی/نمونه‌اند؛ برای استفاده دقیق باید اعتبارسنجی شوند.

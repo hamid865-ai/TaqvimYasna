@@ -1,0 +1,4 @@
+kivy
+jdatetime
+hijri-converter
+requests
