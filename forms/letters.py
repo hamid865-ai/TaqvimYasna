@@ -166,6 +166,15 @@ def get_next_letter_number(year=None, cursor=None, reserve=False):
         cursor = connection.cursor()
 
     try:
+        # Ensure the yearly sequence table exists even when the user is
+        # running with an older local database module or database file.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS LetterNumberSequences (
+                ShamsiYear INTEGER PRIMARY KEY,
+                LastNumber INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
         row = cursor.execute(
             "SELECT LastNumber FROM LetterNumberSequences WHERE ShamsiYear=?",
             (year,)
