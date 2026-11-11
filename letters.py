@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import (
     QMessageBox, QHeaderView, QAbstractItemView,
     QComboBox, QListWidget, QListWidgetItem,
     QDialog, QGridLayout, QFileDialog,
-    QFontComboBox, QSpinBox, QColorDialog
+    QFontComboBox, QSpinBox, QColorDialog,
+    QDateEdit, QGroupBox
 )
 
 from PyQt5.QtCore import Qt
@@ -20,12 +21,11 @@ from PyQt5.QtGui import QTextCharFormat, QColor, QFont
 from database.database import get_connection
 
 
-# ==========================================
-# تبدیل تاریخ میلادی به شمسی
-# ==========================================
+# =========================================================
+# توابع تاریخ شمسی
+# =========================================================
 
 def gregorian_to_jalali(gy, gm, gd):
-
     g_days_in_month = [
         31, 28, 31, 30, 31, 30,
         31, 31, 30, 31, 30, 31
@@ -80,13 +80,10 @@ def gregorian_to_jalali(gy, gm, gd):
         j_day_no -= days
         jm += 1
 
-    jd = j_day_no + 1
-
-    return jy, jm, jd
+    return jy, jm, j_day_no + 1
 
 
 def jalali_to_gregorian(jy, jm, jd):
-
     jy -= 979
 
     j_day_no = (
@@ -144,24 +141,18 @@ def jalali_to_gregorian(jy, jm, jd):
         g_day_no -= days
         gm += 1
 
-    gd = g_day_no + 1
-
-    return gy, gm, gd
+    return gy, gm, g_day_no + 1
 
 
 def today_jalali():
-
     today = date.today()
-
     jy, jm, jd = gregorian_to_jalali(
         today.year, today.month, today.day
     )
-
     return "{:04d}/{:02d}/{:02d}".format(jy, jm, jd)
 
 
 def jalali_month_days(year, month):
-
     if month <= 6:
         return 31
 
@@ -173,14 +164,12 @@ def jalali_month_days(year, month):
 
     from datetime import date as gdate
 
-    return (
-        gdate(*next_year) - gdate(*current)
-    ).days
+    return (gdate(*next_year) - gdate(*current)).days
 
 
-# ==========================================
-# پنجره تقویم شمسی
-# ==========================================
+# =========================================================
+# تقویم شمسی
+# =========================================================
 
 class JalaliCalendarDialog(QDialog):
 
@@ -197,12 +186,13 @@ class JalaliCalendarDialog(QDialog):
     ]
 
     def __init__(self, parent=None, initial_date=None):
-
         super().__init__(parent)
 
         self.setWindowTitle("انتخاب تاریخ")
         self.setFixedSize(440, 370)
         self.setLayoutDirection(Qt.RightToLeft)
+
+        self.selected_date = None
 
         if initial_date:
             try:
@@ -215,28 +205,26 @@ class JalaliCalendarDialog(QDialog):
         else:
             self.set_today()
 
-        self.selected_date = None
-        self.main_layout = QVBoxLayout(self)
-        self.navigation_layout = QHBoxLayout()
+        layout = QVBoxLayout(self)
+        navigation = QHBoxLayout()
 
         self.btn_previous = QPushButton("ماه قبل")
         self.btn_next = QPushButton("ماه بعد")
-
         self.lbl_month = QLabel()
         self.lbl_month.setAlignment(Qt.AlignCenter)
 
-        self.navigation_layout.addWidget(self.btn_previous)
-        self.navigation_layout.addWidget(self.lbl_month)
-        self.navigation_layout.addWidget(self.btn_next)
+        navigation.addWidget(self.btn_previous)
+        navigation.addWidget(self.lbl_month)
+        navigation.addWidget(self.btn_next)
 
-        self.main_layout.addLayout(self.navigation_layout)
+        layout.addLayout(navigation)
 
         self.grid = QGridLayout()
         self.grid.setHorizontalSpacing(2)
         self.grid.setVerticalSpacing(3)
         self.grid.setContentsMargins(8, 8, 8, 8)
 
-        self.main_layout.addLayout(self.grid)
+        layout.addLayout(self.grid)
 
         self.btn_previous.clicked.connect(self.previous_month)
         self.btn_next.clicked.connect(self.next_month)
@@ -244,14 +232,12 @@ class JalaliCalendarDialog(QDialog):
         self.draw_calendar()
 
     def set_today(self):
-
         value = today_jalali().split("/")
         self.year = int(value[0])
         self.month = int(value[1])
         self.day = int(value[2])
 
     def previous_month(self):
-
         self.month -= 1
 
         if self.month < 1:
@@ -261,7 +247,6 @@ class JalaliCalendarDialog(QDialog):
         self.draw_calendar()
 
     def next_month(self):
-
         self.month += 1
 
         if self.month > 12:
@@ -271,11 +256,9 @@ class JalaliCalendarDialog(QDialog):
         self.draw_calendar()
 
     def draw_calendar(self):
-
         while self.grid.count():
             item = self.grid.takeAt(0)
             widget = item.widget()
-
             if widget:
                 widget.deleteLater()
 
@@ -287,7 +270,6 @@ class JalaliCalendarDialog(QDialog):
         )
 
         for col, name in enumerate(self.weekdays):
-
             label = QLabel(name)
             label.setAlignment(Qt.AlignCenter)
             label.setMinimumWidth(56)
@@ -295,11 +277,8 @@ class JalaliCalendarDialog(QDialog):
             color = "#C0392B" if col == 6 else "#183B56"
 
             label.setStyleSheet(
-                "font-family:Tahoma;"
-                "font-size:8pt;"
-                "font-weight:bold;"
-                "padding:0px;"
-                "color:{};".format(color)
+                "font-family:Tahoma;font-size:8pt;"
+                "font-weight:bold;padding:0px;color:{};".format(color)
             )
 
             self.grid.addWidget(label, 0, col)
@@ -316,12 +295,9 @@ class JalaliCalendarDialog(QDialog):
         )
 
         today_parts = today_jalali().split("/")
-        today_year = int(today_parts[0])
-        today_month = int(today_parts[1])
-        today_day = int(today_parts[2])
+        ty, tm, td = map(int, today_parts)
 
         for day_number in range(1, days_count + 1):
-
             position = start_column + day_number - 1
             row = position // 7 + 1
             col = position % 7
@@ -330,9 +306,9 @@ class JalaliCalendarDialog(QDialog):
             btn.setFixedSize(42, 36)
 
             is_today = (
-                self.year == today_year
-                and self.month == today_month
-                and day_number == today_day
+                self.year == ty
+                and self.month == tm
+                and day_number == td
             )
 
             if is_today:
@@ -369,89 +345,32 @@ class JalaliCalendarDialog(QDialog):
                 self.choose_date(d)
             )
 
-            self.grid.addWidget(
-                btn, row, col, Qt.AlignCenter
-            )
+            self.grid.addWidget(btn, row, col, Qt.AlignCenter)
 
     def choose_date(self, day_number):
-
         self.selected_date = "{:04d}/{:02d}/{:02d}".format(
             self.year, self.month, day_number
         )
-
         self.accept()
 
 
-# ==========================================
-# پنجره انتخاب چندگیرنده
-# ==========================================
+# =========================================================
+# انتخاب چند گیرنده
+# =========================================================
 
 class ReceiverDialog(QDialog):
 
     def __init__(self, parent=None, selected_ids=None):
-
         super().__init__(parent)
 
         self.setWindowTitle("انتخاب گیرندگان نامه")
         self.setMinimumSize(430, 520)
         self.setLayoutDirection(Qt.RightToLeft)
 
-        self.selected_ids = []
-
-        if selected_ids:
-            self.selected_ids = list(selected_ids)
-
+        self.selected_ids = list(selected_ids or [])
         self.people = []
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #F3F6F9;
-                font-family: Tahoma;
-                color: #183B56;
-            }
-
-            QLineEdit {
-                background: white;
-                border: 1px solid #CBD5DF;
-                border-radius: 6px;
-                padding: 8px;
-                min-height: 28px;
-            }
-
-            QListWidget {
-                background: white;
-                border: 1px solid #CBD5DF;
-                border-radius: 7px;
-                padding: 5px;
-            }
-
-            QListWidget::item {
-                padding: 8px;
-                border-radius: 5px;
-            }
-
-            QListWidget::item:selected {
-                background: #DCE8F0;
-                color: #183B56;
-            }
-
-            QPushButton {
-                background: #183B56;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 14px;
-                min-height: 28px;
-                font-weight: bold;
-            }
-
-            QPushButton:hover {
-                background: #285577;
-            }
-        """)
-
         layout = QVBoxLayout(self)
-        layout.setSpacing(10)
 
         title = QLabel("گیرندگان نامه را انتخاب کنید")
         title.setStyleSheet(
@@ -460,9 +379,7 @@ class ReceiverDialog(QDialog):
         layout.addWidget(title)
 
         self.txt_search = QLineEdit()
-        self.txt_search.setPlaceholderText(
-            "جستجوی نام گیرنده..."
-        )
+        self.txt_search.setPlaceholderText("جستجوی نام گیرنده...")
         layout.addWidget(self.txt_search)
 
         self.lst_people = QListWidget()
@@ -472,9 +389,6 @@ class ReceiverDialog(QDialog):
         layout.addWidget(self.lst_people, 1)
 
         self.lbl_count = QLabel()
-        self.lbl_count.setStyleSheet(
-            "color:#687D8D;font-weight:bold;"
-        )
         layout.addWidget(self.lbl_count)
 
         buttons = QHBoxLayout()
@@ -493,9 +407,13 @@ class ReceiverDialog(QDialog):
         layout.addLayout(buttons)
 
         self.txt_search.textChanged.connect(self.filter_people)
-        self.lst_people.itemClicked.connect(self.update_selection_order)
+        self.lst_people.itemClicked.connect(
+            self.update_selection_order
+        )
 
-        self.btn_select_all.clicked.connect(self.select_all_visible)
+        self.btn_select_all.clicked.connect(
+            self.select_all_visible
+        )
         self.btn_clear.clicked.connect(self.clear_selection)
         self.btn_ok.clicked.connect(self.accept)
         self.btn_cancel.clicked.connect(self.reject)
@@ -503,7 +421,6 @@ class ReceiverDialog(QDialog):
         self.load_people()
 
     def load_people(self):
-
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -516,23 +433,18 @@ class ReceiverDialog(QDialog):
         self.people = cursor.fetchall()
         conn.close()
 
-        available_ids = [
-            int(row[0]) for row in self.people
-        ]
+        available_ids = [int(row[0]) for row in self.people]
 
         self.selected_ids = [
-            person_id
-            for person_id in self.selected_ids
-            if person_id in available_ids
+            pid for pid in self.selected_ids
+            if pid in available_ids
         ]
 
         self.lst_people.clear()
 
         for person_id, person_name in self.people:
-
             item = QListWidgetItem(person_name)
             item.setData(Qt.UserRole, int(person_id))
-
             self.lst_people.addItem(item)
 
             if int(person_id) in self.selected_ids:
@@ -541,45 +453,31 @@ class ReceiverDialog(QDialog):
         self.update_count()
 
     def update_selection_order(self, item):
-
         person_id = int(item.data(Qt.UserRole))
 
         if item.isSelected():
-
             if person_id not in self.selected_ids:
                 self.selected_ids.append(person_id)
-
         else:
-
             if person_id in self.selected_ids:
                 self.selected_ids.remove(person_id)
 
         self.update_count()
 
     def filter_people(self, text):
-
         text = text.strip().lower()
 
         for index in range(self.lst_people.count()):
-
             item = self.lst_people.item(index)
-
-            item.setHidden(
-                text not in item.text().lower()
-            )
+            item.setHidden(text not in item.text().lower())
 
     def select_all_visible(self):
-
         for index in range(self.lst_people.count()):
-
             item = self.lst_people.item(index)
 
             if not item.isHidden():
-
                 person_id = int(item.data(Qt.UserRole))
-
-                if not item.isSelected():
-                    item.setSelected(True)
+                item.setSelected(True)
 
                 if person_id not in self.selected_ids:
                     self.selected_ids.append(person_id)
@@ -587,7 +485,6 @@ class ReceiverDialog(QDialog):
         self.update_count()
 
     def clear_selection(self):
-
         for index in range(self.lst_people.count()):
             self.lst_people.item(index).setSelected(False)
 
@@ -595,7 +492,6 @@ class ReceiverDialog(QDialog):
         self.update_count()
 
     def update_count(self):
-
         self.lbl_count.setText(
             "تعداد گیرندگان انتخاب‌شده: {}".format(
                 len(self.selected_ids)
@@ -603,17 +499,13 @@ class ReceiverDialog(QDialog):
         )
 
     def get_selected_ids(self):
-
         return list(self.selected_ids)
 
     def get_selected_names(self):
-
         names = []
 
         for person_id in self.selected_ids:
-
             for record_id, name in self.people:
-
                 if int(record_id) == person_id:
                     names.append(name)
                     break
@@ -621,112 +513,201 @@ class ReceiverDialog(QDialog):
         return names
 
 
-# ==========================================
-# فرم مدیریت نامه‌های اداری
-# ==========================================
+# =========================================================
+# فرم مدیریت نامه‌ها
+# =========================================================
+
+class AdvancedSearchDialog(QDialog):
+    """پنجره مستقل فیلترهای پیشرفته نامه‌ها."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("جستجوی پیشرفته نامه‌ها")
+        self.setMinimumWidth(720)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(12)
+
+        title = QLabel("جستجوی پیشرفته نامه‌ها")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet(
+            "font-size:13pt;font-weight:bold;color:#183B56;padding:5px;"
+        )
+        layout.addWidget(title)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(10)
+
+        self.txt_filter_number = QLineEdit()
+        self.txt_filter_number.setPlaceholderText("شماره نامه")
+        self.txt_filter_receiver = QLineEdit()
+        self.txt_filter_receiver.setPlaceholderText("نام گیرنده")
+        self.txt_filter_body = QLineEdit()
+        self.txt_filter_body.setPlaceholderText("عبارت داخل متن نامه")
+        self.cbo_filter_subject = QComboBox()
+
+        self.txt_date_from = QLineEdit()
+        self.txt_date_from.setReadOnly(True)
+        self.txt_date_from.setPlaceholderText("از تاریخ")
+        self.txt_date_to = QLineEdit()
+        self.txt_date_to.setReadOnly(True)
+        self.txt_date_to.setPlaceholderText("تا تاریخ")
+
+        self.btn_date_from = QPushButton("تقویم")
+        self.btn_date_to = QPushButton("تقویم")
+
+        from_layout = QHBoxLayout()
+        from_layout.addWidget(self.txt_date_from, 1)
+        from_layout.addWidget(self.btn_date_from)
+        from_widget = QWidget()
+        from_widget.setLayout(from_layout)
+
+        to_layout = QHBoxLayout()
+        to_layout.addWidget(self.txt_date_to, 1)
+        to_layout.addWidget(self.btn_date_to)
+        to_widget = QWidget()
+        to_widget.setLayout(to_layout)
+
+        grid.addWidget(QLabel("شماره نامه:"), 0, 0)
+        grid.addWidget(self.txt_filter_number, 0, 1)
+        grid.addWidget(QLabel("موضوع:"), 0, 2)
+        grid.addWidget(self.cbo_filter_subject, 0, 3)
+        grid.addWidget(QLabel("از تاریخ:"), 1, 0)
+        grid.addWidget(from_widget, 1, 1)
+        grid.addWidget(QLabel("تا تاریخ:"), 1, 2)
+        grid.addWidget(to_widget, 1, 3)
+        grid.addWidget(QLabel("گیرنده:"), 2, 0)
+        grid.addWidget(self.txt_filter_receiver, 2, 1)
+        grid.addWidget(QLabel("متن نامه:"), 2, 2)
+        grid.addWidget(self.txt_filter_body, 2, 3)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(3, 1)
+        layout.addLayout(grid)
+
+        buttons = QHBoxLayout()
+        self.btn_apply_filter = QPushButton("اعمال فیلترها")
+        self.btn_clear_filter = QPushButton("پاک کردن فیلترها")
+        self.btn_cancel = QPushButton("بستن")
+        buttons.addWidget(self.btn_apply_filter)
+        buttons.addWidget(self.btn_clear_filter)
+        buttons.addStretch()
+        buttons.addWidget(self.btn_cancel)
+        layout.addLayout(buttons)
+
+        self.btn_cancel.clicked.connect(self.reject)
+
 
 class LettersForm(QWidget):
 
-    def __init__(self):
+    def __init__(self, parent=None, on_back=None, on_exit=None):
+        super().__init__(parent)
 
-        super().__init__()
+        self.on_back = on_back
+        self.on_exit = on_exit
 
         self.current_letter_id = None
         self.template_path = None
         self.template_is_personal = False
         self.selected_receiver_ids = []
 
+        self.word_application = None
+        self.word_document = None
+
         self.setWindowTitle("مدیریت نامه‌های اداری")
-        self.resize(1250, 900)
         self.setMinimumSize(1050, 700)
         self.setLayoutDirection(Qt.RightToLeft)
 
         self.setStyleSheet("""
             QWidget {
-                background-color: #F3F6F9;
-                color: #183B56;
-                font-family: Tahoma;
-                font-size: 9pt;
+                background-color:#F3F6F9;
+                color:#183B56;
+                font-family:Tahoma;
+                font-size:9pt;
             }
 
-            QLineEdit, QComboBox, QSpinBox, QFontComboBox {
-                background: white;
-                border: 1px solid #CBD5DF;
-                border-radius: 6px;
-                padding: 5px 8px;
-                min-height: 25px;
+            QLineEdit,QComboBox,QSpinBox,QFontComboBox {
+                background:white;
+                border:1px solid #CBD5DF;
+                border-radius:6px;
+                padding:5px 8px;
+                min-height:25px;
             }
 
             QTextEdit {
-                background: white;
-                border: 1px solid #B8C7D4;
-                border-radius: 7px;
-                padding: 10px;
-                font-size: 12pt;
-                selection-background-color: #D4AF37;
-                selection-color: #183B56;
+                background:white;
+                border:1px solid #B8C7D4;
+                border-radius:7px;
+                padding:10px;
+                font-size:12pt;
+                selection-background-color:#D4AF37;
+                selection-color:#183B56;
             }
 
             QListWidget {
-                background: white;
-                border: 1px solid #CBD5DF;
-                border-radius: 6px;
-                padding: 4px;
+                background:white;
+                border:1px solid #CBD5DF;
+                border-radius:6px;
+                padding:4px;
             }
 
             QListWidget::item {
-                padding: 5px;
-                border-radius: 4px;
+                padding:5px;
+                border-radius:4px;
             }
 
             QListWidget::item:selected {
-                background: #DCE8F0;
-                color: #183B56;
+                background:#DCE8F0;
+                color:#183B56;
             }
 
             QPushButton {
-                background-color: #183B56;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 6px 12px;
-                min-height: 27px;
-                font-weight: bold;
+                background-color:#183B56;
+                color:white;
+                border:none;
+                border-radius:6px;
+                padding:6px 12px;
+                min-height:27px;
+                font-weight:bold;
             }
 
             QPushButton:hover {
-                background-color: #285577;
-            }
-
-            QPushButton:pressed {
-                background-color: #102B40;
-            }
-
-            QPushButton:checked {
-                background-color: #D4AF37;
-                color: #183B56;
+                background-color:#285577;
             }
 
             QTableWidget {
-                background: white;
-                alternate-background-color: #F2F6F9;
-                gridline-color: #E1E7EC;
-                border: 1px solid #D5DDE5;
-                border-radius: 6px;
-                selection-background-color: #D4AF37;
-                selection-color: #183B56;
+                background:white;
+                alternate-background-color:#F2F6F9;
+                gridline-color:#E1E7EC;
+                border:1px solid #D5DDE5;
+                border-radius:6px;
+                selection-background-color:#D4AF37;
+                selection-color:#183B56;
             }
 
             QHeaderView::section {
-                background: #183B56;
-                color: white;
-                padding: 7px;
-                border: none;
-                font-weight: bold;
+                background:#183B56;
+                color:white;
+                padding:7px;
+                border:none;
+                font-weight:bold;
             }
 
-            QLabel {
-                color: #183B56;
+            QGroupBox {
+                font-weight:bold;
+                border:1px solid #CBD5DF;
+                border-radius:7px;
+                margin-top:8px;
+                padding-top:8px;
+            }
+
+            QGroupBox::title {
+                subcontrol-origin:margin;
+                right:10px;
+                padding:0 5px;
             }
         """)
 
@@ -735,119 +716,88 @@ class LettersForm(QWidget):
         self.load_letters()
         self.clear_form()
 
-    # ======================================
-    # تازه‌سازی گیرندگان
-    # ======================================
-
-    def showEvent(self, event):
-
-        super().showEvent(event)
-        self.update_receiver_display()
-
-    def refresh_receivers(self):
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT PersonID, PersonName
-            FROM Persons
-            ORDER BY PersonName
-        """)
-
-        records = cursor.fetchall()
-        conn.close()
-
-        available_ids = [
-            int(row[0]) for row in records
-        ]
-
-        self.selected_receiver_ids = [
-            person_id
-            for person_id in self.selected_receiver_ids
-            if person_id in available_ids
-        ]
-
-        return records
-
-    def update_receiver_display(self):
-
-        records = self.refresh_receivers()
-
-        name_map = {
-            int(row[0]): row[1]
-            for row in records
-        }
-
-        names = [
-            name_map[person_id]
-            for person_id in self.selected_receiver_ids
-            if person_id in name_map
-        ]
-
-        self.txt_receivers.setText("، ".join(names))
-
-        self.lbl_receiver_count.setText(
-            "تعداد: {}".format(len(names))
-        )
-
-    def open_receiver_dialog(self):
-
-        dialog = ReceiverDialog(
-            self,
-            self.selected_receiver_ids
-        )
-
-        if dialog.exec_() == QDialog.Accepted:
-
-            self.selected_receiver_ids = (
-                dialog.get_selected_ids()
-            )
-
-            self.update_receiver_display()
-            self.update_template_for_receivers()
-
-    # ======================================
-    # طراحی رابط کاربری
-    # ======================================
+    # -----------------------------------------------------
+    # رابط کاربری
+    # -----------------------------------------------------
 
     def init_ui(self):
-
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(12, 10, 12, 10)
-        main_layout.setSpacing(8)
+        main_layout.setSpacing(7)
+
+        # عنوان و دکمه‌های ناوبری
+
+        top_layout = QHBoxLayout()
+
+        self.btn_back = QPushButton("بازگشت به داشبورد")
+        self.btn_exit = QPushButton("خروج از برنامه")
 
         title = QLabel("مدیریت نامه‌های اداری")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            font-size: 15pt;
-            font-weight: bold;
-            color: #183B56;
-            padding: 5px;
-        """)
+        title.setStyleSheet(
+            "font-size:15pt;font-weight:bold;color:#183B56;padding:5px;"
+        )
 
-        main_layout.addWidget(title)
+        top_layout.addWidget(self.btn_back)
+        top_layout.addWidget(title, 1)
+        top_layout.addWidget(self.btn_exit)
 
-        search_layout = QHBoxLayout()
-        search_layout.setSpacing(8)
-        search_layout.addWidget(QLabel("جستجوی نامه:"))
+        main_layout.addLayout(top_layout)
+
+        self.btn_back.clicked.connect(self.go_back)
+        self.btn_exit.clicked.connect(self.exit_application)
+
+        # جستجوی سریع و دکمه پنجره جستجوی پیشرفته
+
+        quick_layout = QHBoxLayout()
+        quick_layout.addWidget(QLabel("جستجوی سریع:"))
 
         self.txt_search = QLineEdit()
         self.txt_search.setPlaceholderText(
             "شماره نامه، متن نامه یا نام گیرنده..."
         )
 
-        search_layout.addWidget(self.txt_search)
-        main_layout.addLayout(search_layout)
+        self.btn_advanced_search = QPushButton("جستجوی پیشرفته")
+        self.btn_advanced_search.setMinimumWidth(145)
+
+        quick_layout.addWidget(self.txt_search, 1)
+        quick_layout.addWidget(self.btn_advanced_search)
+        main_layout.addLayout(quick_layout)
 
         self.txt_search.textChanged.connect(self.load_letters)
+
+        # تمام فیلترهای پیشرفته فقط داخل پنجره جداگانه قرار دارند
+        self.advanced_dialog = AdvancedSearchDialog(self)
+
+        # نگه داشتن نام فیلدهای قبلی برای سازگاری با منطق جستجو
+        self.txt_filter_number = self.advanced_dialog.txt_filter_number
+        self.txt_filter_receiver = self.advanced_dialog.txt_filter_receiver
+        self.txt_filter_body = self.advanced_dialog.txt_filter_body
+        self.cbo_filter_subject = self.advanced_dialog.cbo_filter_subject
+        self.txt_date_from = self.advanced_dialog.txt_date_from
+        self.txt_date_to = self.advanced_dialog.txt_date_to
+        self.btn_date_from = self.advanced_dialog.btn_date_from
+        self.btn_date_to = self.advanced_dialog.btn_date_to
+        self.btn_apply_filter = self.advanced_dialog.btn_apply_filter
+        self.btn_clear_filter = self.advanced_dialog.btn_clear_filter
+
+        self.btn_date_from.clicked.connect(
+            lambda: self.open_filter_calendar(self.txt_date_from)
+        )
+        self.btn_date_to.clicked.connect(
+            lambda: self.open_filter_calendar(self.txt_date_to)
+        )
+        self.btn_apply_filter.clicked.connect(self.advanced_dialog.accept)
+        self.btn_clear_filter.clicked.connect(self.clear_filters)
+        self.btn_advanced_search.clicked.connect(self.open_advanced_search)
+
+        # اطلاعات نامه
 
         info_layout = QGridLayout()
         info_layout.setHorizontalSpacing(12)
         info_layout.setVerticalSpacing(7)
 
         self.txt_number = QLineEdit()
-
         self.txt_date = QLineEdit()
         self.txt_date.setReadOnly(True)
 
@@ -855,14 +805,11 @@ class LettersForm(QWidget):
         self.btn_calendar.setMaximumWidth(75)
 
         date_layout = QHBoxLayout()
-        date_layout.setSpacing(5)
         date_layout.addWidget(self.txt_date)
         date_layout.addWidget(self.btn_calendar)
 
         date_widget = QWidget()
         date_widget.setLayout(date_layout)
-
-        self.btn_calendar.clicked.connect(self.open_calendar)
 
         self.cbo_subject = QComboBox()
         self.cbo_signator = QComboBox()
@@ -881,11 +828,11 @@ class LettersForm(QWidget):
 
         main_layout.addLayout(info_layout)
 
+        self.btn_calendar.clicked.connect(self.open_calendar)
+
         # گیرندگان
 
         receiver_layout = QHBoxLayout()
-        receiver_layout.setSpacing(8)
-
         receiver_layout.addWidget(QLabel("گیرندگان:"))
 
         self.txt_receivers = QLineEdit()
@@ -910,10 +857,9 @@ class LettersForm(QWidget):
             self.open_receiver_dialog
         )
 
-        # نوار ابزار ویرایشگر
+        # نوار ابزار متن
 
         toolbar_layout = QHBoxLayout()
-        toolbar_layout.setSpacing(5)
 
         self.font_combo = QFontComboBox()
         self.font_combo.setCurrentFont(QFont("Tahoma", 12))
@@ -927,17 +873,14 @@ class LettersForm(QWidget):
         self.btn_bold = QPushButton("B")
         self.btn_bold.setCheckable(True)
         self.btn_bold.setMaximumWidth(38)
-        self.btn_bold.setToolTip("ضخیم")
 
         self.btn_italic = QPushButton("I")
         self.btn_italic.setCheckable(True)
         self.btn_italic.setMaximumWidth(38)
-        self.btn_italic.setToolTip("مورب")
 
         self.btn_underline = QPushButton("U")
         self.btn_underline.setCheckable(True)
         self.btn_underline.setMaximumWidth(38)
-        self.btn_underline.setToolTip("زیرخط")
 
         self.btn_color = QPushButton("رنگ")
         self.btn_color.setMaximumWidth(55)
@@ -946,15 +889,14 @@ class LettersForm(QWidget):
         self.btn_center = QPushButton("وسط‌چین")
         self.btn_left = QPushButton("چپ‌چین")
 
-        toolbar_layout.addWidget(self.font_combo)
-        toolbar_layout.addWidget(self.font_size)
-        toolbar_layout.addWidget(self.btn_bold)
-        toolbar_layout.addWidget(self.btn_italic)
-        toolbar_layout.addWidget(self.btn_underline)
-        toolbar_layout.addWidget(self.btn_color)
-        toolbar_layout.addWidget(self.btn_right)
-        toolbar_layout.addWidget(self.btn_center)
-        toolbar_layout.addWidget(self.btn_left)
+        for widget in (
+            self.font_combo, self.font_size,
+            self.btn_bold, self.btn_italic,
+            self.btn_underline, self.btn_color,
+            self.btn_right, self.btn_center, self.btn_left
+        ):
+            toolbar_layout.addWidget(widget)
+
         toolbar_layout.addStretch()
 
         toolbar_widget = QWidget()
@@ -964,7 +906,7 @@ class LettersForm(QWidget):
         self.txt_body.setAcceptRichText(True)
         self.txt_body.setLayoutDirection(Qt.RightToLeft)
         self.txt_body.setFont(QFont("Tahoma", 12))
-        self.txt_body.setMinimumHeight(280)
+        self.txt_body.setMinimumHeight(200)
         self.txt_body.setPlaceholderText(
             "متن نامه را اینجا وارد کنید..."
         )
@@ -979,40 +921,27 @@ class LettersForm(QWidget):
         self.btn_right.clicked.connect(
             lambda: self.txt_body.setAlignment(Qt.AlignRight)
         )
-
         self.btn_center.clicked.connect(
             lambda: self.txt_body.setAlignment(Qt.AlignHCenter)
         )
-
         self.btn_left.clicked.connect(
             lambda: self.txt_body.setAlignment(Qt.AlignLeft)
         )
 
         editor_layout = QVBoxLayout()
         editor_layout.setContentsMargins(0, 0, 0, 0)
-        editor_layout.setSpacing(5)
-
-        editor_title = QLabel("متن نامه")
-        editor_title.setStyleSheet(
-            "font-size:10pt;font-weight:bold;color:#183B56;"
-        )
-
-        editor_layout.addWidget(editor_title)
+        editor_layout.addWidget(QLabel("متن نامه"))
         editor_layout.addWidget(toolbar_widget)
         editor_layout.addWidget(self.txt_body)
 
         editor_widget = QWidget()
         editor_widget.setLayout(editor_layout)
 
-        main_layout.addWidget(editor_widget, 5)
+        main_layout.addWidget(editor_widget, 4)
 
         # پیوست‌ها
 
         attachment_layout = QHBoxLayout()
-        attachment_layout.setSpacing(8)
-
-        attachment_label = QLabel("پیوست‌ها:")
-        attachment_label.setMinimumWidth(65)
 
         self.lst_attachments = QListWidget()
         self.lst_attachments.setMaximumHeight(55)
@@ -1020,41 +949,25 @@ class LettersForm(QWidget):
         self.btn_add_attachment = QPushButton("افزودن پیوست")
         self.btn_remove_attachment = QPushButton("حذف پیوست")
 
-        self.btn_add_attachment.setMaximumWidth(115)
-        self.btn_remove_attachment.setMaximumWidth(105)
-
-        attachment_layout.addWidget(attachment_label)
-        attachment_layout.addWidget(self.lst_attachments)
+        attachment_layout.addWidget(QLabel("پیوست‌ها:"))
+        attachment_layout.addWidget(self.lst_attachments, 1)
         attachment_layout.addWidget(self.btn_add_attachment)
         attachment_layout.addWidget(self.btn_remove_attachment)
 
         main_layout.addLayout(attachment_layout)
 
-        attachment_status_layout = QHBoxLayout()
-
-        self.lbl_attachment_status = QLabel(
-            "وضعیت پیوست: ندارد"
-        )
-
-        self.lbl_attachment_status.setStyleSheet(
-            "font-weight:bold;color:#183B56;"
-        )
-
-        attachment_status_layout.addWidget(
-            self.lbl_attachment_status
-        )
-        attachment_status_layout.addStretch()
-
-        main_layout.addLayout(attachment_status_layout)
+        self.lbl_attachment_status = QLabel("وضعیت پیوست: ندارد")
+        main_layout.addWidget(self.lbl_attachment_status)
 
         self.btn_add_attachment.clicked.connect(self.add_attachments)
         self.btn_remove_attachment.clicked.connect(self.remove_attachment)
-        self.lst_attachments.itemDoubleClicked.connect(self.open_attachment)
+        self.lst_attachments.itemDoubleClicked.connect(
+            self.open_attachment
+        )
 
-        # دکمه‌های اصلی
+        # دکمه‌های ذخیره و مدیریت
 
         buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(8)
 
         self.btn_new = QPushButton("نامه جدید")
         self.btn_save = QPushButton("ذخیره نامه")
@@ -1065,10 +978,11 @@ class LettersForm(QWidget):
             "background-color:#D4AF37;color:#183B56;"
         )
 
-        buttons_layout.addWidget(self.btn_new)
-        buttons_layout.addWidget(self.btn_save)
-        buttons_layout.addWidget(self.btn_delete)
-        buttons_layout.addWidget(self.btn_clear)
+        for button in (
+            self.btn_new, self.btn_save,
+            self.btn_delete, self.btn_clear
+        ):
+            buttons_layout.addWidget(button)
 
         main_layout.addLayout(buttons_layout)
 
@@ -1077,32 +991,32 @@ class LettersForm(QWidget):
         self.btn_delete.clicked.connect(self.delete_letter)
         self.btn_clear.clicked.connect(self.clear_form)
 
-        # خروجی Word
+        # خروجی Word و PDF و چاپ
 
-        word_layout = QHBoxLayout()
-        word_layout.setSpacing(8)
+        output_layout = QHBoxLayout()
 
         self.btn_select_template = QPushButton("انتخاب قالب Word")
-        self.btn_create_word = QPushButton("ساخت فایل Word")
+        self.btn_create_word = QPushButton("ساخت Word و PDF")
+        self.btn_print_word = QPushButton("چاپ مستقیم نامه")
+
+        output_layout.addWidget(self.btn_select_template)
+        output_layout.addWidget(self.btn_create_word)
+        output_layout.addWidget(self.btn_print_word)
+
+        self.lbl_template = QLabel("قالب Word انتخاب نشده است")
+        output_layout.addWidget(self.lbl_template, 1)
+
+        main_layout.addLayout(output_layout)
 
         self.btn_select_template.clicked.connect(
             self.select_word_template
         )
-
         self.btn_create_word.clicked.connect(
             self.create_word_file
         )
-
-        word_layout.addWidget(self.btn_select_template)
-        word_layout.addWidget(self.btn_create_word)
-
-        self.lbl_template = QLabel("قالب Word انتخاب نشده است")
-        self.lbl_template.setStyleSheet(
-            "color:#687D8D;font-size:8pt;"
+        self.btn_print_word.clicked.connect(
+            self.print_word_file
         )
-
-        word_layout.addWidget(self.lbl_template, 1)
-        main_layout.addLayout(word_layout)
 
         # جدول نامه‌ها
 
@@ -1124,60 +1038,296 @@ class LettersForm(QWidget):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setAlternatingRowColors(True)
-        self.table.setMaximumHeight(175)
+        self.table.setMaximumHeight(180)
 
         self.table.itemSelectionChanged.connect(self.select_letter)
+        self.table.itemDoubleClicked.connect(self.open_selected_letter)
 
         main_layout.addWidget(self.table, 2)
 
-    # ======================================
-    # توابع ویرایشگر متن
-    # ======================================
+    # -----------------------------------------------------
+    # بازگشت و خروج
+    # -----------------------------------------------------
+
+    def go_back(self):
+        if callable(self.on_back):
+            self.on_back()
+        else:
+            self.hide()
+
+    def exit_application(self):
+        if callable(self.on_exit):
+            self.on_exit()
+        else:
+            answer = QMessageBox.question(
+                self,
+                "خروج از برنامه",
+                "آیا از خروج از برنامه مطمئن هستید؟",
+                QMessageBox.Yes | QMessageBox.No
+            )
+
+            if answer == QMessageBox.Yes:
+                self.window().close()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.update_receiver_display()
+        self.load_letters()
+
+    # -----------------------------------------------------
+    # فیلترهای پیشرفته
+    # -----------------------------------------------------
+
+    def open_filter_calendar(self, target):
+        dialog = JalaliCalendarDialog(self, target.text())
+
+        if dialog.exec_() == QDialog.Accepted:
+            if dialog.selected_date:
+                target.setText(dialog.selected_date)
+                self.load_letters()
+
+    def open_advanced_search(self):
+        self.advanced_dialog.exec_()
+        self.load_letters()
+
+    def clear_filters(self):
+        # پاک‌کردن فیلترهای پیشرفته نباید جستجوی سریع را تغییر دهد.
+        self.txt_filter_number.clear()
+        self.txt_filter_receiver.clear()
+        self.txt_filter_body.clear()
+        self.txt_date_from.clear()
+        self.txt_date_to.clear()
+        self.cbo_filter_subject.setCurrentIndex(0)
+        self.load_letters()
+
+    def load_letters(self):
+        if not hasattr(self, "table"):
+            return
+
+        quick_search = self.txt_search.text().strip()
+
+        number = self.txt_filter_number.text().strip()
+        receiver = self.txt_filter_receiver.text().strip()
+        body = self.txt_filter_body.text().strip()
+
+        date_from = self.txt_date_from.text().strip()
+        date_to = self.txt_date_to.text().strip()
+
+        subject_id = self.cbo_filter_subject.currentData()
+
+        conditions = []
+        params = []
+
+        if quick_search:
+            conditions.append("""
+                (
+                    L.LetterNumber LIKE ?
+                    OR L.LetterBody LIKE ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM LetterPersons LP
+                        JOIN Persons P ON P.PersonID = LP.PersonID
+                        WHERE LP.LetterID = L.LetterID
+                        AND P.PersonName LIKE ?
+                    )
+                )
+            """)
+
+            pattern = "%" + quick_search + "%"
+            params.extend([pattern, pattern, pattern])
+
+        if number:
+            conditions.append("L.LetterNumber LIKE ?")
+            params.append("%" + number + "%")
+
+        if date_from:
+            conditions.append("L.LetterDate >= ?")
+            params.append(date_from)
+
+        if date_to:
+            conditions.append("L.LetterDate <= ?")
+            params.append(date_to)
+
+        if receiver:
+            conditions.append("""
+                EXISTS (
+                    SELECT 1
+                    FROM LetterPersons LP
+                    JOIN Persons P ON P.PersonID = LP.PersonID
+                    WHERE LP.LetterID = L.LetterID
+                    AND P.PersonName LIKE ?
+                )
+            """)
+            params.append("%" + receiver + "%")
+
+        if subject_id is not None:
+            conditions.append("L.SubjectID = ?")
+            params.append(subject_id)
+
+        if body:
+            conditions.append("L.LetterBody LIKE ?")
+            params.append("%" + body + "%")
+
+        where_sql = ""
+
+        if conditions:
+            where_sql = "WHERE " + " AND ".join(conditions)
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT
+                    L.LetterID,
+                    L.LetterNumber,
+                    L.LetterDate,
+                    COALESCE(S.SubjectName, ''),
+                    COALESCE(SG.SignatorName, ''),
+                    COALESCE(
+                        (
+                            SELECT GROUP_CONCAT(P.PersonName, '، ')
+                            FROM LetterPersons LP
+                            JOIN Persons P ON P.PersonID = LP.PersonID
+                            WHERE LP.LetterID = L.LetterID
+                        ),
+                        ''
+                    )
+                FROM Letters L
+                LEFT JOIN Subjects S
+                    ON S.SubjectID = L.SubjectID
+                LEFT JOIN Signators SG
+                    ON SG.SignatorID = L.SignatorID
+                {}
+                ORDER BY L.LetterID DESC
+            """.format(where_sql), params)
+
+            records = cursor.fetchall()
+
+        finally:
+            conn.close()
+
+        self.table.setRowCount(0)
+
+        for row_number, record in enumerate(records):
+            self.table.insertRow(row_number)
+
+            for column, value in enumerate(record):
+                item = QTableWidgetItem(
+                    str(value) if value is not None else ""
+                )
+                self.table.setItem(row_number, column, item)
+
+    # -----------------------------------------------------
+    # تقویم اصلی
+    # -----------------------------------------------------
+
+    def open_calendar(self):
+        dialog = JalaliCalendarDialog(self, self.txt_date.text())
+
+        if dialog.exec_() == QDialog.Accepted:
+            if dialog.selected_date:
+                self.txt_date.setText(dialog.selected_date)
+
+    # -----------------------------------------------------
+    # گیرندگان
+    # -----------------------------------------------------
+
+    def refresh_receivers(self):
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT PersonID, PersonName
+                FROM Persons
+                ORDER BY PersonName
+            """)
+            records = cursor.fetchall()
+        finally:
+            conn.close()
+
+        available_ids = [int(row[0]) for row in records]
+
+        self.selected_receiver_ids = [
+            pid for pid in self.selected_receiver_ids
+            if pid in available_ids
+        ]
+
+        return records
+
+    def update_receiver_display(self):
+        records = self.refresh_receivers()
+
+        name_map = {
+            int(row[0]): row[1]
+            for row in records
+        }
+
+        names = [
+            name_map[pid]
+            for pid in self.selected_receiver_ids
+            if pid in name_map
+        ]
+
+        self.txt_receivers.setText("، ".join(names))
+        self.lbl_receiver_count.setText(
+            "تعداد: {}".format(len(names))
+        )
+
+    def open_receiver_dialog(self):
+        dialog = ReceiverDialog(
+            self,
+            self.selected_receiver_ids
+        )
+
+        if dialog.exec_() == QDialog.Accepted:
+            self.selected_receiver_ids = dialog.get_selected_ids()
+            self.update_receiver_display()
+            self.update_template_for_receivers()
+
+    # -----------------------------------------------------
+    # ویرایشگر متن
+    # -----------------------------------------------------
 
     def change_font(self, font):
-
         self.txt_body.setFocus()
         fmt = QTextCharFormat()
         fmt.setFontFamily(font.family())
         self.txt_body.mergeCurrentCharFormat(fmt)
 
     def change_font_size(self, size):
-
         self.txt_body.setFocus()
         fmt = QTextCharFormat()
         fmt.setFontPointSize(float(size))
         self.txt_body.mergeCurrentCharFormat(fmt)
 
     def toggle_bold(self):
-
         fmt = QTextCharFormat()
-
-        if self.btn_bold.isChecked():
-            fmt.setFontWeight(QFont.Bold)
-        else:
-            fmt.setFontWeight(QFont.Normal)
-
+        fmt.setFontWeight(
+            QFont.Bold if self.btn_bold.isChecked()
+            else QFont.Normal
+        )
         self.txt_body.mergeCurrentCharFormat(fmt)
         self.txt_body.setFocus()
 
     def toggle_italic(self):
-
         fmt = QTextCharFormat()
         fmt.setFontItalic(self.btn_italic.isChecked())
         self.txt_body.mergeCurrentCharFormat(fmt)
         self.txt_body.setFocus()
 
     def toggle_underline(self):
-
         fmt = QTextCharFormat()
         fmt.setFontUnderline(self.btn_underline.isChecked())
         self.txt_body.mergeCurrentCharFormat(fmt)
         self.txt_body.setFocus()
 
     def change_text_color(self):
-
         color = QColorDialog.getColor(
-            QColor("#183B56"), self, "انتخاب رنگ متن"
+            QColor("#183B56"),
+            self,
+            "انتخاب رنگ متن"
         )
 
         if color.isValid():
@@ -1186,24 +1336,11 @@ class LettersForm(QWidget):
             self.txt_body.mergeCurrentCharFormat(fmt)
             self.txt_body.setFocus()
 
-    # ======================================
-    # تقویم
-    # ======================================
-
-    def open_calendar(self):
-
-        dialog = JalaliCalendarDialog(self, self.txt_date.text())
-
-        if dialog.exec_() == QDialog.Accepted:
-            if dialog.selected_date:
-                self.txt_date.setText(dialog.selected_date)
-
-    # ======================================
-    # انتخاب قالب Word
-    # ======================================
+    # -----------------------------------------------------
+    # قالب Word
+    # -----------------------------------------------------
 
     def select_word_template(self):
-
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "انتخاب قالب Word",
@@ -1222,27 +1359,19 @@ class LettersForm(QWidget):
         )
 
         QMessageBox.information(
-            self, "قالب Word",
+            self,
+            "قالب Word",
             "قالب Word با موفقیت انتخاب شد."
         )
 
-    # ======================================
-    # انتخاب خودکار قالب اختصاصی گیرنده
-    # ======================================
-
     def update_template_for_receivers(self):
-
-        # قالب اختصاصی اولین گیرنده انتخاب‌شده ملاک است
-
         if self.selected_receiver_ids:
-
             first_person_id = self.selected_receiver_ids[0]
 
             conn = get_connection()
             cursor = conn.cursor()
 
             try:
-
                 cursor.execute("""
                     SELECT TemplatePath
                     FROM Persons
@@ -1250,7 +1379,6 @@ class LettersForm(QWidget):
                 """, (first_person_id,))
 
                 record = cursor.fetchone()
-
             finally:
                 conn.close()
 
@@ -1260,19 +1388,15 @@ class LettersForm(QWidget):
                 personal_path = str(record[0]).strip()
 
             if personal_path:
-
                 self.template_path = personal_path
                 self.template_is_personal = True
 
                 if os.path.isfile(personal_path):
-
                     self.lbl_template.setText(
                         "قالب اختصاصی: "
                         + os.path.basename(personal_path)
                     )
-
                 else:
-
                     self.lbl_template.setText(
                         "قالب اختصاصی پیدا نشد: "
                         + os.path.basename(personal_path)
@@ -1280,12 +1404,7 @@ class LettersForm(QWidget):
 
                 return
 
-        # اگر قالب قبلی اختصاصی بوده و گیرنده اول جدید قالب ندارد،
-        # قالب اختصاصی قبلی پاک می‌شود.
-        # قالب دستی انتخاب‌شده توسط کاربر حفظ می‌شود.
-
         if self.template_is_personal:
-
             self.template_path = None
             self.template_is_personal = False
 
@@ -1293,12 +1412,11 @@ class LettersForm(QWidget):
                 "قالب Word انتخاب نشده است"
             )
 
-    # ======================================
-    # جایگزینی Bookmark در Word
-    # ======================================
+    # -----------------------------------------------------
+    # توابع Bookmark ورد
+    # -----------------------------------------------------
 
     def replace_word_bookmark(self, document, bookmark_name, value):
-
         if not document.Bookmarks.Exists(bookmark_name):
             raise Exception(
                 "Bookmark زیر در قالب Word وجود ندارد: "
@@ -1308,33 +1426,36 @@ class LettersForm(QWidget):
         bookmark_range = document.Bookmarks(bookmark_name).Range
         bookmark_range.Text = str(value)
 
-        document.Bookmarks.Add(bookmark_name, bookmark_range)
+        document.Bookmarks.Add(
+            bookmark_name,
+            bookmark_range
+        )
 
-    # ======================================
-    # دریافت تعداد پیوست‌های نامه
-    # ======================================
+    # -----------------------------------------------------
+    # پیوست‌ها
+    # -----------------------------------------------------
 
     def get_attachment_count(self):
-
         if self.current_letter_id is None:
             return 0
 
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM Attachments
-            WHERE LetterID = ?
-        """, (self.current_letter_id,))
+        try:
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM Attachments
+                WHERE LetterID = ?
+            """, (self.current_letter_id,))
 
-        result = cursor.fetchone()
-        conn.close()
+            result = cursor.fetchone()
+        finally:
+            conn.close()
 
         return int(result[0]) if result else 0
 
     def get_attachment_text(self):
-
         count = self.get_attachment_count()
 
         if count == 0:
@@ -1349,24 +1470,241 @@ class LettersForm(QWidget):
             str(count).translate(persian_digits)
         )
 
-    # ======================================
-    # ساخت فایل Word
-    # ======================================
+    def add_attachments(self):
+        if self.current_letter_id is None:
+            QMessageBox.warning(
+                self,
+                "توجه",
+                "ابتدا نامه را ذخیره کنید."
+            )
+            return
+
+        files, _ = QFileDialog.getOpenFileNames(
+            self,
+            "انتخاب فایل‌های پیوست",
+            "",
+            "All Files (*.*)"
+        )
+
+        if not files:
+            return
+
+        base_path = os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+
+        letters_folder = os.path.join(
+            base_path,
+            "attachments",
+            str(self.current_letter_id)
+        )
+
+        conn = None
+
+        try:
+            os.makedirs(letters_folder, exist_ok=True)
+
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            for source_path in files:
+                file_name = os.path.basename(source_path)
+
+                destination = os.path.join(
+                    letters_folder,
+                    file_name
+                )
+
+                name, ext = os.path.splitext(file_name)
+                counter = 1
+
+                while os.path.exists(destination):
+                    file_name = "{}_{}{}".format(
+                        name, counter, ext
+                    )
+
+                    destination = os.path.join(
+                        letters_folder,
+                        file_name
+                    )
+
+                    counter += 1
+
+                shutil.copy2(source_path, destination)
+
+                cursor.execute("""
+                    INSERT INTO Attachments
+                    (
+                        LetterID,
+                        FileName,
+                        FilePath
+                    )
+                    VALUES (?, ?, ?)
+                """, (
+                    self.current_letter_id,
+                    file_name,
+                    destination
+                ))
+
+            conn.commit()
+            conn.close()
+            conn = None
+
+            self.load_attachments()
+
+            QMessageBox.information(
+                self,
+                "موفق",
+                "پیوست‌ها با موفقیت اضافه شدند."
+            )
+
+        except Exception as e:
+            if conn is not None:
+                conn.rollback()
+                conn.close()
+
+            QMessageBox.critical(
+                self,
+                "خطا در افزودن پیوست",
+                str(e)
+            )
+
+    def load_attachments(self):
+        self.lst_attachments.clear()
+
+        if self.current_letter_id is None:
+            self.update_attachment_status()
+            return
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT AttachmentID, FileName, FilePath
+                FROM Attachments
+                WHERE LetterID = ?
+                ORDER BY AttachmentID DESC
+            """, (self.current_letter_id,))
+
+            records = cursor.fetchall()
+        finally:
+            conn.close()
+
+        for record in records:
+            item = QListWidgetItem(record[1])
+            item.setData(Qt.UserRole, record[0])
+            item.setData(Qt.UserRole + 1, record[2])
+            self.lst_attachments.addItem(item)
+
+        self.update_attachment_status()
+
+    def update_attachment_status(self):
+        count = self.lst_attachments.count()
+
+        persian_count = str(count).translate(
+            str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+        )
+
+        if count == 0:
+            text = "وضعیت پیوست: ندارد"
+        else:
+            text = "وضعیت پیوست: دارد - تعداد: {}".format(
+                persian_count
+            )
+
+        self.lbl_attachment_status.setText(text)
+
+    def open_attachment(self, item):
+        file_path = item.data(Qt.UserRole + 1)
+
+        if not file_path or not os.path.isfile(file_path):
+            QMessageBox.warning(
+                self,
+                "خطا",
+                "فایل پیوست پیدا نشد."
+            )
+            return
+
+        try:
+            os.startfile(file_path)
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "خطا در باز کردن فایل",
+                str(e)
+            )
+
+    def remove_attachment(self):
+        item = self.lst_attachments.currentItem()
+
+        if item is None:
+            QMessageBox.warning(
+                self,
+                "توجه",
+                "ابتدا یک پیوست انتخاب کنید."
+            )
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "حذف پیوست",
+            "آیا از حذف این پیوست مطمئن هستید؟",
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if answer != QMessageBox.Yes:
+            return
+
+        attachment_id = item.data(Qt.UserRole)
+        file_path = item.data(Qt.UserRole + 1)
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                DELETE FROM Attachments
+                WHERE AttachmentID = ?
+            """, (attachment_id,))
+
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            QMessageBox.critical(
+                self,
+                "خطا در حذف پیوست",
+                str(e)
+            )
+            return
+        finally:
+            conn.close()
+
+        if file_path and os.path.isfile(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+
+        self.load_attachments()
+
+    # -----------------------------------------------------
+    # ساخت Word و PDF
+    # -----------------------------------------------------
 
     def create_word_file(self):
-
         if not self.template_path:
-
             QMessageBox.warning(
-                self, "قالب Word",
+                self,
+                "قالب Word",
                 "ابتدا قالب Word را انتخاب کنید."
             )
             return
 
         if not os.path.isfile(self.template_path):
-
             QMessageBox.warning(
-                self, "قالب Word",
+                self,
+                "قالب Word",
                 "فایل قالب پیدا نشد."
             )
             return
@@ -1375,29 +1713,35 @@ class LettersForm(QWidget):
         letter_date = self.txt_date.text().strip()
 
         if not letter_number:
-            QMessageBox.warning(self, "توجه", "شماره نامه را وارد کنید.")
+            QMessageBox.warning(
+                self, "توجه", "شماره نامه را وارد کنید."
+            )
             return
 
         if not letter_date:
-            QMessageBox.warning(self, "توجه", "تاریخ نامه را انتخاب کنید.")
+            QMessageBox.warning(
+                self, "توجه", "تاریخ نامه را انتخاب کنید."
+            )
+            return
+
+        if self.current_letter_id is None:
+            QMessageBox.warning(
+                self,
+                "توجه",
+                "قبل از ساخت فایل Word، نامه را ذخیره کنید."
+            )
             return
 
         self.update_receiver_display()
 
-        # دریافت نام گیرندگان به ترتیب انتخاب
-        # نام هر گیرنده در یک خط جداگانه درج می‌شود
-
         receiver_names = []
 
         if self.selected_receiver_ids:
-
             conn = get_connection()
             cursor = conn.cursor()
 
             try:
-
                 for person_id in self.selected_receiver_ids:
-
                     cursor.execute("""
                         SELECT PersonName
                         FROM Persons
@@ -1408,12 +1752,10 @@ class LettersForm(QWidget):
 
                     if record and record[0]:
                         receiver_names.append(record[0])
-
             finally:
                 conn.close()
 
         receiver_text = "\r".join(receiver_names)
-
         signator_text = self.cbo_signator.currentText()
 
         body_html = self.txt_body.toHtml()
@@ -1436,15 +1778,19 @@ class LettersForm(QWidget):
         if not output_path.lower().endswith(".docx"):
             output_path += ".docx"
 
+        pdf_path = os.path.splitext(output_path)[0] + ".pdf"
+
         word = None
         document = None
         temp_html_path = None
 
         try:
-
             import win32com.client
 
-            word = win32com.client.DispatchEx("Word.Application")
+            word = win32com.client.DispatchEx(
+                "Word.Application"
+            )
+
             word.Visible = True
             word.DisplayAlerts = 0
 
@@ -1461,15 +1807,14 @@ class LettersForm(QWidget):
                 "Attachment"
             ]
 
-            missing_bookmarks = []
-
-            for name in required_bookmarks:
-                if not document.Bookmarks.Exists(name):
-                    missing_bookmarks.append(name)
+            missing_bookmarks = [
+                name for name in required_bookmarks
+                if not document.Bookmarks.Exists(name)
+            ]
 
             if missing_bookmarks:
                 raise Exception(
-                    "این Bookmarkها در فایل Word پیدا نشدند:\n"
+                    "این Bookmarkها در قالب Word وجود ندارند:\n"
                     + "\n".join(missing_bookmarks)
                 )
 
@@ -1498,9 +1843,9 @@ class LettersForm(QWidget):
             body_range.Text = ""
 
             if body_plain:
-
                 temp_file = tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".html"
+                    delete=False,
+                    suffix=".html"
                 )
 
                 temp_html_path = temp_file.name
@@ -1514,7 +1859,11 @@ class LettersForm(QWidget):
                 ) as file:
                     file.write(body_html)
 
-                insert_range = document.Range(body_start, body_start)
+                insert_range = document.Range(
+                    body_start,
+                    body_start
+                )
+
                 insert_range.InsertFile(temp_html_path)
 
                 body_end = insert_range.End
@@ -1523,9 +1872,7 @@ class LettersForm(QWidget):
                     "LetterBody",
                     document.Range(body_start, body_end)
                 )
-
             else:
-
                 document.Bookmarks.Add(
                     "LetterBody",
                     document.Range(body_start, body_start)
@@ -1536,6 +1883,12 @@ class LettersForm(QWidget):
                 FileFormat=16
             )
 
+            # ساخت PDF با همان سند نهایی Word
+            document.ExportAsFixedFormat(
+                os.path.abspath(pdf_path),
+                17
+            )
+
             if temp_html_path and os.path.isfile(temp_html_path):
                 try:
                     os.remove(temp_html_path)
@@ -1544,17 +1897,35 @@ class LettersForm(QWidget):
 
                 temp_html_path = None
 
-            QMessageBox.information(
-                self,
-                "موفق",
-                "فایل Word با موفقیت ساخته شد:\n\n"
-                + output_path
-                + "\n\nوضعیت پیوست: "
-                + attachment_text
+            # نگهداری سند Word برای چاپ مستقیم
+            self.word_application = word
+            self.word_document = document
+
+            message = (
+                "فایل Word و PDF با موفقیت ساخته شدند.\n\n"
+                "Word:\n" + output_path
+                + "\n\nPDF:\n" + pdf_path
+                + "\n\nوضعیت پیوست: " + attachment_text
             )
 
-        except ImportError:
+            QMessageBox.information(
+                self,
+                "ساخت موفق فایل‌ها",
+                message
+            )
 
+            # بازکردن PDF
+            try:
+                os.startfile(pdf_path)
+            except Exception as e:
+                QMessageBox.warning(
+                    self,
+                    "باز کردن PDF",
+                    "فایل PDF ساخته شد، اما بازکردن آن ناموفق بود:\n"
+                    + str(e)
+                )
+
+        except ImportError:
             QMessageBox.critical(
                 self,
                 "خطای کتابخانه",
@@ -1564,7 +1935,93 @@ class LettersForm(QWidget):
             )
 
         except Exception as e:
+            if document is not None:
+                try:
+                    document.Close(SaveChanges=False)
+                except Exception:
+                    pass
 
+            if word is not None:
+                try:
+                    word.Quit()
+                except Exception:
+                    pass
+
+            self.word_application = None
+            self.word_document = None
+
+            QMessageBox.critical(
+                self,
+                "خطا در ساخت Word و PDF",
+                str(e)
+            )
+
+        finally:
+            if temp_html_path and os.path.isfile(temp_html_path):
+                try:
+                    os.remove(temp_html_path)
+                except Exception:
+                    pass
+
+    # -----------------------------------------------------
+    # چاپ مستقیم
+    # -----------------------------------------------------
+
+    def print_word_file(self):
+        if self.word_document is not None:
+            try:
+                self.word_document.PrintOut()
+                QMessageBox.information(
+                    self,
+                    "چاپ",
+                    "فرمان چاپ به چاپگر پیش‌فرض ارسال شد."
+                )
+                return
+            except Exception:
+                self.word_document = None
+                self.word_application = None
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "انتخاب فایل Word برای چاپ",
+            "",
+            "Word Files (*.docx *.doc)"
+        )
+
+        if not file_path:
+            return
+
+        word = None
+        document = None
+
+        try:
+            import win32com.client
+
+            word = win32com.client.DispatchEx(
+                "Word.Application"
+            )
+
+            word.Visible = False
+            word.DisplayAlerts = 0
+
+            document = word.Documents.Open(
+                os.path.abspath(file_path)
+            )
+
+            document.PrintOut()
+            document.Close(SaveChanges=False)
+            document = None
+
+            word.Quit()
+            word = None
+
+            QMessageBox.information(
+                self,
+                "چاپ",
+                "فرمان چاپ به چاپگر پیش‌فرض ارسال شد."
+            )
+
+        except Exception as e:
             if document is not None:
                 try:
                     document.Close(SaveChanges=False)
@@ -1578,129 +2035,78 @@ class LettersForm(QWidget):
                     pass
 
             QMessageBox.critical(
-                self, "خطا در ساخت فایل Word", str(e)
+                self,
+                "خطا در چاپ",
+                str(e)
             )
 
-        finally:
-
-            if temp_html_path and os.path.isfile(temp_html_path):
-                try:
-                    os.remove(temp_html_path)
-                except Exception:
-                    pass
-
-    # ======================================
-    # بارگذاری کمبوباکس‌ها
-    # ======================================
+    # -----------------------------------------------------
+    # کمبوباکس‌ها
+    # -----------------------------------------------------
 
     def load_combos(self):
-
         conn = get_connection()
         cursor = conn.cursor()
 
-        self.cbo_subject.clear()
-        self.cbo_signator.clear()
+        try:
+            self.cbo_subject.clear()
+            self.cbo_signator.clear()
+            self.cbo_filter_subject.clear()
 
-        cursor.execute("""
-            SELECT SubjectID, SubjectName
-            FROM Subjects
-            ORDER BY SubjectName
-        """)
+            self.cbo_filter_subject.addItem(
+                "همه موضوع‌ها",
+                None
+            )
 
-        for record in cursor.fetchall():
-            self.cbo_subject.addItem(record[1], record[0])
+            cursor.execute("""
+                SELECT SubjectID, SubjectName
+                FROM Subjects
+                ORDER BY SubjectName
+            """)
 
-        cursor.execute("""
-            SELECT SignatorID, SignatorName
-            FROM Signators
-            ORDER BY SignatorName
-        """)
+            subjects = cursor.fetchall()
 
-        for record in cursor.fetchall():
-            self.cbo_signator.addItem(record[1], record[0])
-
-        conn.close()
-
-    # ======================================
-    # بارگذاری فهرست نامه‌ها
-    # ======================================
-
-    def load_letters(self):
-
-        search_text = self.txt_search.text().strip()
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT
-                L.LetterID,
-                L.LetterNumber,
-                L.LetterDate,
-                COALESCE(S.SubjectName, ''),
-                COALESCE(SG.SignatorName, ''),
-                COALESCE(
-                    (
-                        SELECT GROUP_CONCAT(P.PersonName, '، ')
-                        FROM LetterPersons LP
-                        JOIN Persons P
-                            ON P.PersonID = LP.PersonID
-                        WHERE LP.LetterID = L.LetterID
-                    ),
-                    ''
-                )
-            FROM Letters L
-            LEFT JOIN Subjects S
-                ON S.SubjectID = L.SubjectID
-            LEFT JOIN Signators SG
-                ON SG.SignatorID = L.SignatorID
-            WHERE
-                L.LetterNumber LIKE ?
-                OR L.LetterBody LIKE ?
-                OR EXISTS (
-                    SELECT 1
-                    FROM LetterPersons LP
-                    JOIN Persons P
-                        ON P.PersonID = LP.PersonID
-                    WHERE LP.LetterID = L.LetterID
-                    AND P.PersonName LIKE ?
-                )
-            ORDER BY L.LetterID DESC
-        """, (
-            "%" + search_text + "%",
-            "%" + search_text + "%",
-            "%" + search_text + "%"
-        ))
-
-        records = cursor.fetchall()
-        conn.close()
-
-        self.table.setRowCount(0)
-
-        for row_number, record in enumerate(records):
-
-            self.table.insertRow(row_number)
-
-            for column, value in enumerate(record):
-
-                item = QTableWidgetItem(
-                    str(value) if value is not None else ""
+            for record in subjects:
+                self.cbo_subject.addItem(
+                    record[1], record[0]
                 )
 
-                self.table.setItem(row_number, column, item)
+                self.cbo_filter_subject.addItem(
+                    record[1], record[0]
+                )
 
-    # ======================================
-    # انتخاب نامه از جدول
-    # ======================================
+            cursor.execute("""
+                SELECT SignatorID, SignatorName
+                FROM Signators
+                ORDER BY SignatorName
+            """)
+
+            for record in cursor.fetchall():
+                self.cbo_signator.addItem(
+                    record[1], record[0]
+                )
+
+        finally:
+            conn.close()
+
+    # -----------------------------------------------------
+    # انتخاب نامه
+    # -----------------------------------------------------
 
     def select_letter(self):
-
         selected_rows = self.table.selectionModel().selectedRows()
 
         if not selected_rows:
             return
 
-        row = selected_rows[0].row()
+        self.load_letter_by_row(selected_rows[0].row())
+
+    def open_selected_letter(self, item):
+        self.load_letter_by_row(item.row())
+
+    def load_letter_by_row(self, row):
+        if row < 0 or self.table.item(row, 0) is None:
+            return
 
         self.current_letter_id = int(
             self.table.item(row, 0).text()
@@ -1709,52 +2115,52 @@ class LettersForm(QWidget):
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT
-                LetterNumber,
-                LetterDate,
-                SubjectID,
-                SignatorID,
-                LetterBody
-            FROM Letters
-            WHERE LetterID = ?
-        """, (self.current_letter_id,))
+        try:
+            cursor.execute("""
+                SELECT
+                    LetterNumber,
+                    LetterDate,
+                    SubjectID,
+                    SignatorID,
+                    LetterBody
+                FROM Letters
+                WHERE LetterID = ?
+            """, (self.current_letter_id,))
 
-        record = cursor.fetchone()
+            record = cursor.fetchone()
 
-        if record is None:
+            if record is None:
+                return
+
+            self.txt_number.setText(record[0] or "")
+            self.txt_date.setText(record[1] or "")
+
+            self.set_combo_value(self.cbo_subject, record[2])
+            self.set_combo_value(self.cbo_signator, record[3])
+
+            self.txt_body.setHtml(record[4] or "")
+
+            cursor.execute("""
+                SELECT PersonID
+                FROM LetterPersons
+                WHERE LetterID = ?
+                ORDER BY LetterPersonID
+            """, (self.current_letter_id,))
+
+            receiver_ids = [
+                int(item[0])
+                for item in cursor.fetchall()
+            ]
+
+        finally:
             conn.close()
-            return
-
-        self.txt_number.setText(record[0] or "")
-        self.txt_date.setText(record[1] or "")
-
-        self.set_combo_value(self.cbo_subject, record[2])
-        self.set_combo_value(self.cbo_signator, record[3])
-
-        self.txt_body.setHtml(record[4] or "")
-
-        cursor.execute("""
-            SELECT PersonID
-            FROM LetterPersons
-            WHERE LetterID = ?
-            ORDER BY LetterPersonID
-        """, (self.current_letter_id,))
-
-        receiver_ids = [
-            int(item[0]) for item in cursor.fetchall()
-        ]
-
-        conn.close()
 
         self.selected_receiver_ids = receiver_ids
         self.update_receiver_display()
         self.update_template_for_receivers()
-
         self.load_attachments()
 
     def set_combo_value(self, combo, value):
-
         index = combo.findData(value)
 
         if index >= 0:
@@ -1762,22 +2168,25 @@ class LettersForm(QWidget):
         else:
             combo.setCurrentIndex(-1)
 
-    # ======================================
+    # -----------------------------------------------------
     # ذخیره نامه
-    # ======================================
+    # -----------------------------------------------------
 
     def save_letter(self):
-
         letter_number = self.txt_number.text().strip()
         letter_date = self.txt_date.text().strip()
         letter_body = self.txt_body.toHtml()
 
         if not letter_number:
-            QMessageBox.warning(self, "توجه", "شماره نامه را وارد کنید.")
+            QMessageBox.warning(
+                self, "توجه", "شماره نامه را وارد کنید."
+            )
             return
 
         if not letter_date:
-            QMessageBox.warning(self, "توجه", "تاریخ نامه را انتخاب کنید.")
+            QMessageBox.warning(
+                self, "توجه", "تاریخ نامه را انتخاب کنید."
+            )
             return
 
         subject_id = self.cbo_subject.currentData()
@@ -1790,18 +2199,15 @@ class LettersForm(QWidget):
         )
 
         receiver_ids = [
-            person_id
-            for person_id in self.selected_receiver_ids
-            if person_id in available_ids
+            pid for pid in self.selected_receiver_ids
+            if pid in available_ids
         ]
 
         conn = get_connection()
         cursor = conn.cursor()
 
         try:
-
             if self.current_letter_id is None:
-
                 cursor.execute("""
                     INSERT INTO Letters
                     (
@@ -1823,7 +2229,6 @@ class LettersForm(QWidget):
                 self.current_letter_id = cursor.lastrowid
 
             else:
-
                 cursor.execute("""
                     UPDATE Letters
                     SET
@@ -1848,7 +2253,6 @@ class LettersForm(QWidget):
                 """, (self.current_letter_id,))
 
             for person_id in receiver_ids:
-
                 cursor.execute("""
                     INSERT INTO LetterPersons
                     (LetterID, PersonID)
@@ -1859,7 +2263,6 @@ class LettersForm(QWidget):
                 ))
 
             conn.commit()
-            conn.close()
 
             self.selected_receiver_ids = receiver_ids
             self.update_receiver_display()
@@ -1868,27 +2271,33 @@ class LettersForm(QWidget):
             self.load_attachments()
 
             QMessageBox.information(
-                self, "موفق", "نامه با موفقیت ذخیره شد."
+                self,
+                "موفق",
+                "نامه با موفقیت ذخیره شد."
             )
 
         except Exception as e:
-
             conn.rollback()
-            conn.close()
 
             QMessageBox.critical(
-                self, "خطا در ذخیره نامه", str(e)
+                self,
+                "خطا در ذخیره نامه",
+                str(e)
             )
 
-    # ======================================
+        finally:
+            conn.close()
+
+    # -----------------------------------------------------
     # حذف نامه
-    # ======================================
+    # -----------------------------------------------------
 
     def delete_letter(self):
-
         if self.current_letter_id is None:
             QMessageBox.warning(
-                self, "توجه", "ابتدا یک نامه انتخاب کنید."
+                self,
+                "توجه",
+                "ابتدا یک نامه انتخاب کنید."
             )
             return
 
@@ -1905,8 +2314,9 @@ class LettersForm(QWidget):
         conn = get_connection()
         cursor = conn.cursor()
 
-        try:
+        attachment_paths = []
 
+        try:
             cursor.execute("""
                 SELECT FilePath
                 FROM Attachments
@@ -1933,37 +2343,41 @@ class LettersForm(QWidget):
             """, (self.current_letter_id,))
 
             conn.commit()
-            conn.close()
-
-            for path in attachment_paths:
-                if path and os.path.isfile(path):
-                    try:
-                        os.remove(path)
-                    except Exception:
-                        pass
-
-            self.clear_form()
-            self.load_letters()
-
-            QMessageBox.information(
-                self, "موفق", "نامه با موفقیت حذف شد."
-            )
 
         except Exception as e:
-
             conn.rollback()
-            conn.close()
 
             QMessageBox.critical(
-                self, "خطا در حذف نامه", str(e)
+                self,
+                "خطا در حذف نامه",
+                str(e)
             )
+            return
 
-    # ======================================
+        finally:
+            conn.close()
+
+        for path in attachment_paths:
+            if path and os.path.isfile(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+
+        self.clear_form()
+        self.load_letters()
+
+        QMessageBox.information(
+            self,
+            "موفق",
+            "نامه با موفقیت حذف شد."
+        )
+
+    # -----------------------------------------------------
     # پاک کردن فرم
-    # ======================================
+    # -----------------------------------------------------
 
     def clear_form(self):
-
         self.current_letter_id = None
         self.selected_receiver_ids = []
 
@@ -1997,227 +2411,6 @@ class LettersForm(QWidget):
 
         self.table.clearSelection()
 
-    # ======================================
-    # افزودن پیوست
-    # ======================================
-
-    def add_attachments(self):
-
-        if self.current_letter_id is None:
-            QMessageBox.warning(
-                self, "توجه", "ابتدا نامه را ذخیره کنید."
-            )
-            return
-
-        files, _ = QFileDialog.getOpenFileNames(
-            self, "انتخاب فایل‌های پیوست", "", "All Files (*.*)"
-        )
-
-        if not files:
-            return
-
-        base_path = os.path.dirname(
-            os.path.dirname(os.path.abspath(__file__))
-        )
-
-        letters_folder = os.path.join(
-            base_path, "attachments", str(self.current_letter_id)
-        )
-
-        conn = None
-
-        try:
-
-            os.makedirs(letters_folder, exist_ok=True)
-
-            conn = get_connection()
-            cursor = conn.cursor()
-
-            for source_path in files:
-
-                file_name = os.path.basename(source_path)
-
-                destination = os.path.join(
-                    letters_folder, file_name
-                )
-
-                name, ext = os.path.splitext(file_name)
-                counter = 1
-
-                while os.path.exists(destination):
-
-                    file_name = "{}_{}{}".format(
-                        name, counter, ext
-                    )
-
-                    destination = os.path.join(
-                        letters_folder, file_name
-                    )
-
-                    counter += 1
-
-                shutil.copy2(source_path, destination)
-
-                cursor.execute("""
-                    INSERT INTO Attachments
-                    (
-                        LetterID,
-                        FileName,
-                        FilePath
-                    )
-                    VALUES (?, ?, ?)
-                """, (
-                    self.current_letter_id,
-                    file_name,
-                    destination
-                ))
-
-            conn.commit()
-            conn.close()
-            conn = None
-
-            self.load_attachments()
-
-            QMessageBox.information(
-                self, "موفق", "پیوست‌ها با موفقیت اضافه شدند."
-            )
-
-        except Exception as e:
-
-            if conn is not None:
-                conn.rollback()
-                conn.close()
-
-            QMessageBox.critical(
-                self, "خطا در افزودن پیوست", str(e)
-            )
-
-    # ======================================
-    # بارگذاری پیوست‌ها
-    # ======================================
-
-    def load_attachments(self):
-
-        self.lst_attachments.clear()
-
-        if self.current_letter_id is None:
-            self.update_attachment_status()
-            return
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT AttachmentID, FileName, FilePath
-            FROM Attachments
-            WHERE LetterID = ?
-            ORDER BY AttachmentID DESC
-        """, (self.current_letter_id,))
-
-        records = cursor.fetchall()
-        conn.close()
-
-        for record in records:
-
-            item = QListWidgetItem(record[1])
-            item.setData(Qt.UserRole, record[0])
-            item.setData(Qt.UserRole + 1, record[2])
-
-            self.lst_attachments.addItem(item)
-
-        self.update_attachment_status()
-
-    def update_attachment_status(self):
-
-        count = self.lst_attachments.count()
-
-        persian_count = str(count).translate(
-            str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
-        )
-
-        if count == 0:
-            text = "وضعیت پیوست: ندارد"
-        else:
-            text = "وضعیت پیوست: دارد - تعداد: {}".format(
-                persian_count
-            )
-
-        self.lbl_attachment_status.setText(text)
-
-    # ======================================
-    # باز کردن پیوست
-    # ======================================
-
-    def open_attachment(self, item):
-
-        file_path = item.data(Qt.UserRole + 1)
-
-        if not file_path or not os.path.isfile(file_path):
-            QMessageBox.warning(
-                self, "خطا", "فایل پیوست پیدا نشد."
-            )
-            return
-
-        try:
-            os.startfile(file_path)
-        except Exception as e:
-            QMessageBox.critical(
-                self, "خطا در باز کردن فایل", str(e)
-            )
-
-    # ======================================
-    # حذف پیوست
-    # ======================================
-
-    def remove_attachment(self):
-
-        item = self.lst_attachments.currentItem()
-
-        if item is None:
-            QMessageBox.warning(
-                self, "توجه", "ابتدا یک پیوست انتخاب کنید."
-            )
-            return
-
-        answer = QMessageBox.question(
-            self,
-            "حذف پیوست",
-            "آیا از حذف این پیوست مطمئن هستید؟",
-            QMessageBox.Yes | QMessageBox.No
-        )
-
-        if answer != QMessageBox.Yes:
-            return
-
-        attachment_id = item.data(Qt.UserRole)
-        file_path = item.data(Qt.UserRole + 1)
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        try:
-
-            cursor.execute("""
-                DELETE FROM Attachments
-                WHERE AttachmentID = ?
-            """, (attachment_id,))
-
-            conn.commit()
-            conn.close()
-
-            if file_path and os.path.isfile(file_path):
-                os.remove(file_path)
-
-            self.load_attachments()
-
-        except Exception as e:
-
-            try:
-                conn.rollback()
-                conn.close()
-            except Exception:
-                pass
-
-            QMessageBox.critical(
-                self, "خطا در حذف پیوست", str(e)
-            )
+    # -----------------------------------------------------
+    # پایان فرم
+    # -----------------------------------------------------
