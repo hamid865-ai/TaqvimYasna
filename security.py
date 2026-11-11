@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from database.database import get_connection
 from PyQt5.QtWidgets import (
     QWidget, QLineEdit, QTextEdit, QComboBox, QTimeEdit,
     QDateEdit, QSpinBox, QDoubleSpinBox, QCheckBox,
@@ -8,8 +9,47 @@ from PyQt5.QtWidgets import (
 )
 
 
-def has_permission(user, key):
+def refresh_user(user):
+    """Refresh role and permissions from the database before access checks."""
     if not user:
+        return False
+    user_id = user.get("UserID")
+    if not user_id:
+        return True
+
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT Username, FullName, Role, IsActive, Permissions "
+            "FROM AppUsers WHERE UserID=?",
+            (user_id,)
+        ).fetchone()
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+    if not row or not row[3]:
+        user["IsActive"] = False
+        return False
+
+    try:
+        permissions = json.loads(row[4] or "{}")
+    except Exception:
+        permissions = {}
+
+    user.update({
+        "Username": row[0],
+        "FullName": row[1],
+        "Role": row[2],
+        "IsActive": bool(row[3]),
+        "Permissions": permissions
+    })
+    return True
+
+
+def has_permission(user, key):
+    if not refresh_user(user):
         return False
     if user.get("Role") == "مدیر سیستم":
         return True
