@@ -24,7 +24,13 @@ from forms.reminders import RemindersForm
 from forms.reports import ReportsForm
 from forms.settings import SettingsUsersForm
 
-# Protect the actual Qt-connected slots, not only the visible menu buttons.
+from forms.login import LoginDialog
+from security import (
+    has_permission, can_edit, apply_read_only,
+    protect_form_methods, show_denied, guard_class_methods
+)
+
+# Protect Qt-connected write actions at the class level.
 guard_class_methods(
     PersonsForm, "persons", ["save_person", "delete_person", "remove_template"]
 )
@@ -43,12 +49,6 @@ guard_class_methods(
 guard_class_methods(
     RemindersForm, "reminders",
     ["save_reminder", "mark_done", "delete_reminder"]
-)
-
-from forms.login import LoginDialog
-from security import (
-    has_permission, can_edit, apply_read_only,
-    protect_form_methods, show_denied, guard_class_methods
 )
 
 # فایل سخن روز را در مرحله بعد ایجاد می‌کنیم.
