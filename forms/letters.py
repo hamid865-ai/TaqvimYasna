@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QComboBox, QListWidget, QListWidgetItem,
     QDialog, QGridLayout, QFileDialog,
     QFontComboBox, QSpinBox, QColorDialog,
-    QDateEdit, QGroupBox
+    QDateEdit, QGroupBox, QCheckBox
 )
 
 from PyQt5.QtCore import Qt
@@ -846,6 +846,16 @@ class LettersForm(QWidget):
 
         self.txt_number = QLineEdit()
         self.txt_number.setReadOnly(True)
+        self.chk_manual_number = QCheckBox("شماره‌گذاری دستی")
+        self.chk_manual_number.toggled.connect(
+            self.on_manual_number_toggled
+        )
+        number_layout = QHBoxLayout()
+        number_layout.addWidget(self.txt_number, 1)
+        number_layout.addWidget(self.chk_manual_number)
+        number_widget = QWidget()
+        number_widget.setLayout(number_layout)
+
         self.txt_date = QLineEdit()
         self.txt_date.setReadOnly(True)
 
@@ -863,7 +873,7 @@ class LettersForm(QWidget):
         self.cbo_signator = QComboBox()
 
         info_layout.addWidget(QLabel("شماره نامه:"), 0, 0)
-        info_layout.addWidget(self.txt_number, 0, 1)
+        info_layout.addWidget(number_widget, 0, 1)
         info_layout.addWidget(QLabel("تاریخ نامه:"), 0, 2)
         info_layout.addWidget(date_widget, 0, 3)
         info_layout.addWidget(QLabel("موضوع:"), 1, 0)
@@ -2213,6 +2223,11 @@ class LettersForm(QWidget):
                 return
 
             self.txt_number.setText(record[0] or "")
+            self.txt_number.setReadOnly(True)
+            self.chk_manual_number.blockSignals(True)
+            self.chk_manual_number.setChecked(False)
+            self.chk_manual_number.setEnabled(False)
+            self.chk_manual_number.blockSignals(False)
             self.txt_date.setText(record[1] or "")
 
             self.set_combo_value(self.cbo_subject, record[2])
@@ -2249,6 +2264,24 @@ class LettersForm(QWidget):
             combo.setCurrentIndex(-1)
 
     # -----------------------------------------------------
+    # شماره‌گذاری دستی و خودکار
+    # -----------------------------------------------------
+
+    def on_manual_number_toggled(self, checked):
+        if self.current_letter_id is not None:
+            self.chk_manual_number.setChecked(False)
+            self.chk_manual_number.setEnabled(False)
+            self.txt_number.setReadOnly(True)
+            return
+
+        self.txt_number.setReadOnly(not checked)
+        if checked:
+            self.txt_number.setFocus()
+            self.txt_number.selectAll()
+        else:
+            self.txt_number.setText(get_next_letter_number())
+
+    # -----------------------------------------------------
     # ذخیره نامه
     # -----------------------------------------------------
 
@@ -2282,13 +2315,30 @@ class LettersForm(QWidget):
 
         try:
             if self.current_letter_id is None:
-                # رزرو شماره و درج نامه در یک تراکنش؛ در ثبت هم‌زمان
-                # کاربران، شماره تکراری تولید نمی‌شود.
+                # شماره‌گذاری و درج در یک تراکنش برای جلوگیری از تکرار.
                 cursor.execute("BEGIN IMMEDIATE")
-                current_year = int(today_jalali().split("/")[0])
-                letter_number = get_next_letter_number(
-                    current_year, cursor=cursor, reserve=True
-                )
+
+                if self.chk_manual_number.isChecked():
+                    letter_number = self.txt_number.text().strip()
+                    if not letter_number:
+                        raise ValueError(
+                            "حالت شماره‌گذاری دستی فعال است؛ شماره نامه را وارد کنید."
+                        )
+                else:
+                    current_year = int(today_jalali().split("/")[0])
+                    letter_number = get_next_letter_number(
+                        current_year, cursor=cursor, reserve=True
+                    )
+
+                duplicate = cursor.execute(
+                    "SELECT LetterID FROM Letters WHERE LetterNumber=? LIMIT 1",
+                    (letter_number,)
+                ).fetchone()
+                if duplicate:
+                    raise ValueError(
+                        "این شماره نامه قبلاً ثبت شده است. شماره دیگری وارد کنید."
+                    )
+
                 cursor.execute("""
                     INSERT INTO Letters
                     (
@@ -2461,6 +2511,11 @@ class LettersForm(QWidget):
         self.current_letter_id = None
         self.selected_receiver_ids = []
 
+        self.chk_manual_number.setEnabled(True)
+        self.chk_manual_number.blockSignals(True)
+        self.chk_manual_number.setChecked(False)
+        self.chk_manual_number.blockSignals(False)
+        self.txt_number.setReadOnly(True)
         self.txt_number.setText(get_next_letter_number())
         self.txt_date.setText(today_jalali())
         self.txt_body.clear()
