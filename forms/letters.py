@@ -2263,12 +2263,6 @@ class LettersForm(QWidget):
             )
             return
 
-        if not letter_date:
-            QMessageBox.warning(
-                self, "توجه", "تاریخ نامه را انتخاب کنید."
-            )
-            return
-
         subject_id = self.cbo_subject.currentData()
         signator_id = self.cbo_signator.currentData()
 
