@@ -224,8 +224,18 @@ class LoginDialog(QDialog):
         finally:
             conn.close()
 
+        conn = get_connection()
+        try:
+            user_id_row = conn.execute(
+                "SELECT UserID FROM AppUsers WHERE Username=?",
+                (username,)
+            ).fetchone()
+        finally:
+            conn.close()
+
         self.user = {
-            "UserID": None, "Username": username,
+            "UserID": int(user_id_row[0]) if user_id_row else None,
+            "Username": username,
             "FullName": full_name, "Role": "مدیر سیستم",
             "IsActive": True, "Permissions": permissions
         }
