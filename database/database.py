@@ -118,6 +118,10 @@ def initialize_database():
         cursor.execute("""CREATE TABLE IF NOT EXISTS AppSettings (
             SettingKey TEXT PRIMARY KEY,
             SettingValue TEXT)""")
+        # شمارنده مستقل برای شماره نامه‌های هر سال شمسی
+        cursor.execute("""CREATE TABLE IF NOT EXISTS LetterNumberSequences (
+            ShamsiYear INTEGER PRIMARY KEY,
+            LastNumber INTEGER NOT NULL DEFAULT 0)""")
         cursor.execute("""CREATE TABLE IF NOT EXISTS AppUsers (
             UserID INTEGER PRIMARY KEY AUTOINCREMENT,
             Username TEXT NOT NULL UNIQUE,
