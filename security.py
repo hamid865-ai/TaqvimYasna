@@ -73,3 +73,20 @@ def protect_form_methods(form, user, permission_key, method_names):
             return _original(*args, **kwargs)
 
         setattr(form, method_name, guarded)
+
+
+def guard_class_methods(form_class, permission_key, method_names):
+    """Guard slots at class level so Qt signals cannot bypass the checks."""
+    for method_name in method_names:
+        original = getattr(form_class, method_name, None)
+        if original is None or not callable(original):
+            continue
+
+        def guarded(self, *args, _original=original, **kwargs):
+            user = getattr(self, "current_user", None)
+            if not can_edit(user, permission_key):
+                show_denied(self)
+                return None
+            return _original(self, *args, **kwargs)
+
+        setattr(form_class, method_name, guarded)
