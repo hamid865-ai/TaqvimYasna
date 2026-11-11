@@ -40,12 +40,12 @@ def apply_read_only(form, user, permission_key):
         return
 
     for widget in form.findChildren(QWidget):
-        if isinstance(widget, (QLineEdit, QTextEdit)):
+        if isinstance(widget, QLineEdit):
+            placeholder = widget.placeholderText() or ""
+            if "جستجو" not in placeholder and "فیلتر" not in placeholder:
+                widget.setReadOnly(True)
+        elif isinstance(widget, QTextEdit):
             widget.setReadOnly(True)
-        elif isinstance(widget, (QComboBox, QTimeEdit, QDateEdit,
-                                 QSpinBox, QDoubleSpinBox, QCheckBox,
-                                 QRadioButton)):
-            widget.setEnabled(False)
         elif isinstance(widget, QTableWidget):
             widget.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
@@ -54,7 +54,7 @@ def apply_read_only(form, user, permission_key):
             if any(word in label for word in (
                 "ذخیره", "ثبت", "حذف", "ویرایش", "جدید",
                 "افزودن", "ارسال", "تحویل", "انجام شد",
-                "پاک کردن", "امضا", "انتخاب فایل"
+                "پاک کردن", "امضا", "انتخاب فایل", "ایجاد"
             )):
                 widget.setEnabled(False)
 
