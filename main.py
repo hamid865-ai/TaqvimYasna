@@ -127,6 +127,19 @@ class YasnaWindow(QMainWindow):
         self.create_ui()
         self.refresh_dashboard()
 
+        # ساعت دیجیتال هر ثانیه به‌روز می‌شود.
+        self.clock_timer = QTimer(self)
+        self.clock_timer.timeout.connect(self.update_clock)
+        self.clock_timer.start(1000)
+
+        # بررسی یادآوری‌های سررسیدشده به‌صورت دوره‌ای.
+        self.reminder_alarm_timer = QTimer(self)
+        self.reminder_alarm_timer.timeout.connect(
+            self.check_reminder_alarms
+        )
+        self.reminder_alarm_timer.start(15000)
+        self.check_reminder_alarms()
+
         self.dashboard_timer = QTimer(self)
         self.dashboard_timer.timeout.connect(self.refresh_dashboard)
         self.dashboard_timer.start(60000)
@@ -467,6 +480,76 @@ class YasnaWindow(QMainWindow):
         self.load_statistics()
         self.load_today_reminders()
 
+    def check_reminder_alarms(self):
+        """نمایش هشدار برای یادآوری‌های سررسیدشده که هنوز اعلام نشده‌اند."""
+        connection = None
+
+        try:
+            current_date = today_jalali()
+            current_time = QTime.currentTime().toString("HH:mm")
+
+            connection = get_connection()
+            cursor = connection.cursor()
+
+            cursor.execute("""
+                SELECT ReminderID, ReminderTitle, ReminderDate,
+                       COALESCE(ReminderTime, ''), COALESCE(Description, '')
+                FROM Reminders
+                WHERE COALESCE(IsDone, 0) = 0
+                  AND COALESCE(NotifiedAt, '') = ''
+                  AND (
+                        ReminderDate < ?
+                        OR (
+                            ReminderDate = ?
+                            AND COALESCE(NULLIF(ReminderTime, ''), '23:59') <= ?
+                        )
+                  )
+                ORDER BY ReminderDate, ReminderTime, ReminderID
+            """, (current_date, current_date, current_time))
+
+            due_rows = cursor.fetchall()
+
+            if not due_rows:
+                return
+
+            notified_at = __import__("datetime").datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+
+            cursor.executemany(
+                "UPDATE Reminders SET NotifiedAt = ? WHERE ReminderID = ?",
+                [(notified_at, row[0]) for row in due_rows]
+            )
+            connection.commit()
+
+            messages = []
+            for reminder_id, title, reminder_date, reminder_time, description in due_rows:
+                line = "{}  |  {}  |  {}".format(
+                    title,
+                    reminder_date,
+                    reminder_time or "--:--"
+                )
+                if description:
+                    line += "\n" + description
+                messages.append(line)
+
+            QApplication.beep()
+            QMessageBox.information(
+                self,
+                "یادآوری یسنا",
+                "زمان یادآوری موارد زیر فرا رسیده است:\n\n" +
+                "\n\n".join(messages)
+            )
+
+            self.refresh_dashboard()
+
+        except Exception as error:
+            print("Reminder alarm error:", error)
+
+        finally:
+            if connection:
+                connection.close()
+
     def load_statistics(self):
         queries = {
             "letters": "SELECT COUNT(*) FROM Letters",
@@ -614,8 +697,7 @@ class YasnaWindow(QMainWindow):
         if self.postal_window is None:
             self.postal_window = PostalForm(
                 parent=self,
-                on_back=self.show_dashboard,
-                on_exit=self.close
+                on_back=self.show_dashboard
             )
             self.stack.addWidget(self.postal_window)
 
@@ -625,8 +707,7 @@ class YasnaWindow(QMainWindow):
         if self.reminders_window is None:
             self.reminders_window = RemindersForm(
                 parent=self,
-                on_back=self.show_dashboard,
-                on_exit=self.close
+                on_back=self.show_dashboard
             )
             self.stack.addWidget(self.reminders_window)
 
@@ -636,8 +717,7 @@ class YasnaWindow(QMainWindow):
         if self.reports_window is None:
             self.reports_window = ReportsForm(
                 parent=self,
-                on_back=self.show_dashboard,
-                on_exit=self.close
+                on_back=self.show_dashboard
             )
             self.stack.addWidget(self.reports_window)
 
