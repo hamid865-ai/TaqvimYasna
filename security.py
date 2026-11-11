@@ -15,7 +15,9 @@ def refresh_user(user):
         return False
     user_id = user.get("UserID")
     if not user_id:
-        return True
+        # Fail closed: an authenticated session must always map to a DB user.
+        user["IsActive"] = False
+        return False
 
     conn = get_connection()
     try:
