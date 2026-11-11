@@ -19,7 +19,7 @@ from PyQt5.QtGui import (
 from database.database import initialize_database, get_connection
 from forms.persons import PersonsForm
 from forms.letters import LettersForm, today_jalali
-from forms.postal import PostalForm
+from forms.postal import PostalForm, DirectoryTab
 from forms.reminders import RemindersForm
 from forms.reports import ReportsForm
 from forms.settings import SettingsUsersForm
@@ -31,6 +31,9 @@ guard_class_methods(
 guard_class_methods(
     LettersForm, "letters",
     ["save_letter", "delete_letter", "add_attachments", "remove_attachment"]
+)
+guard_class_methods(
+    DirectoryTab, "postal", ["save_row", "delete_row"]
 )
 guard_class_methods(
     PostalForm, "postal",
