@@ -869,6 +869,9 @@ class YasnaWindow(QMainWindow):
         if answer != QMessageBox.Yes:
             return
 
+        if self.persons_window is not None:
+            self.persons_window.close()
+
         self.hide()
         login = LoginDialog(self)
         if login.exec_() == LoginDialog.Accepted and login.user:
@@ -935,6 +938,8 @@ class YasnaWindow(QMainWindow):
         )
 
         if answer == QMessageBox.Yes:
+            if self.persons_window is not None:
+                self.persons_window.close()
             event.accept()
         else:
             event.ignore()
