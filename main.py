@@ -22,6 +22,7 @@ from forms.letters import LettersForm, today_jalali
 from forms.postal import PostalForm
 from forms.reminders import RemindersForm
 from forms.reports import ReportsForm
+from forms.settings import SettingsUsersForm
 
 # فایل سخن روز را در مرحله بعد ایجاد می‌کنیم.
 try:
@@ -124,6 +125,7 @@ class YasnaWindow(QMainWindow):
         self.postal_window = None
         self.reminders_window = None
         self.reports_window = None
+        self.settings_window = None
 
         self.create_ui()
         self.refresh_dashboard()
@@ -673,11 +675,7 @@ class YasnaWindow(QMainWindow):
             self.open_reports()
 
         elif key == "settings":
-            QMessageBox.information(
-                self,
-                "تنظیمات و کاربران",
-                "این بخش را در مرحله بعد طراحی و فعال می‌کنیم."
-            )
+            self.open_settings()
 
     def add_form_to_stack(self, form):
         if self.stack.indexOf(form) == -1:
@@ -732,6 +730,31 @@ class YasnaWindow(QMainWindow):
             self.stack.addWidget(self.reports_window)
 
         self.stack.setCurrentWidget(self.reports_window)
+
+
+    def open_settings(self):
+        if self.settings_window is None:
+            self.settings_window = SettingsUsersForm(
+                parent=self,
+                on_back=self.show_dashboard
+            )
+            self.stack.addWidget(self.settings_window)
+        else:
+            self.settings_window.load_settings()
+            self.settings_window.load_users()
+        self.stack.setCurrentWidget(self.settings_window)
+
+    def apply_theme(self, theme):
+        if theme == "dark":
+            self.setStyleSheet("""
+                QWidget { background-color:#202B38; color:#F2F4F7; }
+                QLineEdit, QTextEdit, QComboBox, QTableWidget {
+                    background-color:#2C3948; color:#F2F4F7;
+                    border:1px solid #526273;
+                }
+            """)
+        else:
+            self.setStyleSheet("")
 
     def show_dashboard(self):
         self.stack.setCurrentWidget(self.dashboard)
