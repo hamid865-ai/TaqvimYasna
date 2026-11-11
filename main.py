@@ -259,7 +259,7 @@ class YasnaWindow(QMainWindow):
         side_layout.addStretch()
 
         user_label = QLabel(
-            "{}\\n{}".format(
+            "{}\n{}".format(
                 self.current_user.get("FullName", ""),
                 self.current_user.get("Role", "")
             )
