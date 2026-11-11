@@ -23,10 +23,29 @@ from forms.postal import PostalForm
 from forms.reminders import RemindersForm
 from forms.reports import ReportsForm
 from forms.settings import SettingsUsersForm
+
+# Protect the actual Qt-connected slots, not only the visible menu buttons.
+guard_class_methods(
+    PersonsForm, "persons", ["save_person", "delete_person", "remove_template"]
+)
+guard_class_methods(
+    LettersForm, "letters",
+    ["save_letter", "delete_letter", "add_attachments", "remove_attachment"]
+)
+guard_class_methods(
+    PostalForm, "postal",
+    ["save_record", "mark_sent", "mark_delivered", "delete_record",
+     "capture_mouse_signature", "upload_signature", "clear_signature"]
+)
+guard_class_methods(
+    RemindersForm, "reminders",
+    ["save_reminder", "mark_done", "delete_reminder"]
+)
+
 from forms.login import LoginDialog
 from security import (
     has_permission, can_edit, apply_read_only,
-    protect_form_methods, show_denied
+    protect_form_methods, show_denied, guard_class_methods
 )
 
 # فایل سخن روز را در مرحله بعد ایجاد می‌کنیم.
@@ -735,6 +754,7 @@ class YasnaWindow(QMainWindow):
             return
         if self.persons_window is None:
             self.persons_window = PersonsForm()
+            self.persons_window.current_user = self.current_user
             apply_read_only(self.persons_window, self.current_user, "persons")
             protect_form_methods(
                 self.persons_window, self.current_user, "persons",
@@ -756,6 +776,7 @@ class YasnaWindow(QMainWindow):
                 on_exit=self.close
             )
             self.stack.addWidget(self.letters_window)
+            self.letters_window.current_user = self.current_user
             apply_read_only(self.letters_window, self.current_user, "letters")
             protect_form_methods(
                 self.letters_window, self.current_user, "letters",
@@ -774,6 +795,9 @@ class YasnaWindow(QMainWindow):
                 on_back=self.show_dashboard
             )
             self.stack.addWidget(self.postal_window)
+            self.postal_window.current_user = self.current_user
+            for child in self.postal_window.findChildren(QWidget):
+                child.current_user = self.current_user
             apply_read_only(self.postal_window, self.current_user, "postal")
             protect_form_methods(
                 self.postal_window, self.current_user, "postal",
@@ -793,6 +817,7 @@ class YasnaWindow(QMainWindow):
                 on_back=self.show_dashboard
             )
             self.stack.addWidget(self.reminders_window)
+            self.reminders_window.current_user = self.current_user
             apply_read_only(self.reminders_window, self.current_user, "reminders")
             protect_form_methods(
                 self.reminders_window, self.current_user, "reminders",
