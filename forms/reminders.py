@@ -254,7 +254,8 @@ class RemindersForm(QWidget):
                 self.current_reminder_id = cursor.lastrowid
             else:
                 cursor.execute("""UPDATE Reminders SET ReminderTitle = ?, ReminderDate = ?,
-                    Description = ?, ReminderTime = ? WHERE ReminderID = ?""",
+                    Description = ?, ReminderTime = ?, NotifiedAt = NULL
+                    WHERE ReminderID = ?""",
                     (title, reminder_date, description, reminder_time, self.current_reminder_id))
             conn.commit()
         except Exception as exc:
