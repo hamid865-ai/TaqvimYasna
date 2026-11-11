@@ -144,6 +144,8 @@ class YasnaWindow(QMainWindow):
         super().__init__()
         self.current_user = user or {}
         self.menu_buttons = {}
+        self._allow_close = False
+        self.replacement_window = None
 
         self.setWindowTitle("Yasna | سیستم مدیریت مکاتبات اداری")
         self.setMinimumSize(1100, 700)
@@ -864,8 +866,25 @@ class YasnaWindow(QMainWindow):
             "از حساب کاربری خارج شوید؟",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
-        if answer == QMessageBox.Yes:
-            QApplication.quit()
+        if answer != QMessageBox.Yes:
+            return
+
+        self.hide()
+        login = LoginDialog(self)
+        if login.exec_() == LoginDialog.Accepted and login.user:
+            self.replacement_window = YasnaWindow(login.user)
+            self.replacement_window.showMaximized()
+            for timer_name in (
+                "clock_timer", "reminder_alarm_timer",
+                "dashboard_timer", "session_timer"
+            ):
+                timer = getattr(self, timer_name, None)
+                if timer:
+                    timer.stop()
+            self._allow_close = True
+            self.close()
+        else:
+            self.showMaximized()
 
     def verify_active_session(self):
         user_id = self.current_user.get("UserID")
@@ -903,6 +922,10 @@ class YasnaWindow(QMainWindow):
         self.refresh_dashboard()
 
     def closeEvent(self, event):
+        if self._allow_close:
+            event.accept()
+            return
+
         answer = QMessageBox.question(
             self,
             "خروج از برنامه",
