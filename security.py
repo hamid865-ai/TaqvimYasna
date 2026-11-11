@@ -57,3 +57,19 @@ def apply_read_only(form, user, permission_key):
                 "پاک کردن", "امضا", "انتخاب فایل"
             )):
                 widget.setEnabled(False)
+
+
+def protect_form_methods(form, user, permission_key, method_names):
+    """Add a permission check to each data-changing form action."""
+    for method_name in method_names:
+        original = getattr(form, method_name, None)
+        if original is None or not callable(original):
+            continue
+
+        def guarded(*args, _original=original, **kwargs):
+            if not can_edit(user, permission_key):
+                show_denied(form)
+                return None
+            return _original(*args, **kwargs)
+
+        setattr(form, method_name, guarded)
