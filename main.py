@@ -8,7 +8,8 @@ import sqlite3
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QGridLayout, QFrame,
-    QStackedWidget, QMessageBox, QGraphicsDropShadowEffect
+    QStackedWidget, QMessageBox, QGraphicsDropShadowEffect,
+    QScrollArea
 )
 from PyQt5.QtCore import Qt, QTimer, QTime, QPointF
 from PyQt5.QtGui import (
@@ -227,6 +228,7 @@ class YasnaWindow(QMainWindow):
 
         # محتوای اصلی
         content = QWidget()
+        content.setMinimumWidth(760)
         content.setStyleSheet("background-color:%s;" % CREAM)
         main_layout = QVBoxLayout(content)
         main_layout.setContentsMargins(25, 20, 25, 20)
@@ -348,7 +350,7 @@ class YasnaWindow(QMainWindow):
 
         for index, (key, title, symbol) in enumerate(stat_items):
             card = QFrame()
-            card.setMinimumHeight(105)
+            card.setMinimumSize(125, 105)
             card.setStyleSheet("""
                 QFrame {
                     background: white;
@@ -453,7 +455,15 @@ class YasnaWindow(QMainWindow):
 
         main_layout.addLayout(bottom_row, 1)
 
-        root.addWidget(content, 1)
+        # محتوای داشبورد در ارتفاع‌های کم اسکرول می‌شود؛ اجزای اصلی
+        # و رنگ‌بندی بدون تغییر باقی می‌مانند.
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setWidget(content)
+        root.addWidget(scroll_area, 1)
 
         self.update_clock()
         self.show_daily_quote()
