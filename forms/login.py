@@ -105,7 +105,8 @@ class LoginDialog(QDialog):
         conn = get_connection()
         try:
             count = conn.execute(
-                "SELECT COUNT(*) FROM AppUsers"
+                "SELECT COUNT(*) FROM AppUsers "
+                "WHERE Role='مدیر سیستم' AND IsActive=1"
             ).fetchone()[0]
         finally:
             conn.close()
