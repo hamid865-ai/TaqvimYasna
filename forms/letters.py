@@ -2394,6 +2394,11 @@ class LettersForm(QWidget):
             conn.commit()
 
             self.txt_number.setText(letter_number)
+            self.txt_number.setReadOnly(True)
+            self.chk_manual_number.blockSignals(True)
+            self.chk_manual_number.setChecked(False)
+            self.chk_manual_number.setEnabled(False)
+            self.chk_manual_number.blockSignals(False)
             self.selected_receiver_ids = receiver_ids
             self.update_receiver_display()
 
