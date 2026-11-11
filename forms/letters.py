@@ -1470,6 +1470,25 @@ class LettersForm(QWidget):
             str(count).translate(persian_digits)
         )
 
+
+    def get_default_letters_path(self):
+        """Read the default output directory configured in application settings."""
+        conn = get_connection()
+        try:
+            row = conn.execute(
+                "SELECT SettingValue FROM AppSettings WHERE SettingKey = ?",
+                ("letters_default_path",)
+            ).fetchone()
+        finally:
+            conn.close()
+        path = row[0].strip() if row and row[0] else ""
+        if not path:
+            path = os.path.join(
+                os.path.expanduser("~"), "Documents", "Yasna", "Letters"
+            )
+        os.makedirs(path, exist_ok=True)
+        return path
+
     def add_attachments(self):
         if self.current_letter_id is None:
             QMessageBox.warning(
@@ -1479,10 +1498,15 @@ class LettersForm(QWidget):
             )
             return
 
+        try:
+            start_folder = self.get_default_letters_path()
+        except Exception:
+            start_folder = ""
+
         files, _ = QFileDialog.getOpenFileNames(
             self,
             "انتخاب فایل‌های پیوست",
-            "",
+            start_folder,
             "All Files (*.*)"
         )
 
@@ -1493,9 +1517,14 @@ class LettersForm(QWidget):
             os.path.dirname(os.path.abspath(__file__))
         )
 
+        try:
+            configured_path = self.get_default_letters_path()
+        except Exception:
+            configured_path = os.path.join(base_path, "attachments")
+
         letters_folder = os.path.join(
-            base_path,
-            "attachments",
+            configured_path,
+            "Attachments",
             str(self.current_letter_id)
         )
 
@@ -1763,7 +1792,10 @@ class LettersForm(QWidget):
 
         attachment_text = self.get_attachment_text()
 
-        default_name = "Letter_{}.docx".format(letter_number)
+        default_name = os.path.join(
+            self.get_default_letters_path(),
+            "Letter_{}.docx".format(letter_number)
+        )
 
         output_path, _ = QFileDialog.getSaveFileName(
             self,
