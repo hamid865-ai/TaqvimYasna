@@ -115,6 +115,20 @@ def initialize_database():
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_postal_signatures_postal ON PostalSignatures(PostalID, PartyType, SignatureID)"
         )
+        cursor.execute("""CREATE TABLE IF NOT EXISTS AppSettings (
+            SettingKey TEXT PRIMARY KEY,
+            SettingValue TEXT)""")
+        cursor.execute("""CREATE TABLE IF NOT EXISTS AppUsers (
+            UserID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Username TEXT NOT NULL UNIQUE,
+            FullName TEXT NOT NULL,
+            PasswordHash TEXT NOT NULL,
+            PasswordSalt TEXT NOT NULL,
+            Role TEXT NOT NULL DEFAULT 'کاربر عادی',
+            IsActive INTEGER NOT NULL DEFAULT 1,
+            Permissions TEXT,
+            CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP)""")
+
         connection.commit()
     except Exception:
         connection.rollback()
