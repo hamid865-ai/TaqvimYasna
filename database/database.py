@@ -67,6 +67,8 @@ def initialize_database():
         # افزودن ستون‌های جدید بدون حذف یا تغییر اطلاعات یادآوری‌های قبلی
         _add_column(cursor, "Reminders", "ReminderTime", "TEXT")
         _add_column(cursor, "Reminders", "CreatedAt", "TEXT")
+        # زمان اعلام هشدار؛ مانع نمایش چندباره یک یادآوری می‌شود.
+        _add_column(cursor, "Reminders", "NotifiedAt", "TEXT")
 
         # Independent postal sender/receiver directories.
         cursor.execute("""CREATE TABLE IF NOT EXISTS PostalSenders (
