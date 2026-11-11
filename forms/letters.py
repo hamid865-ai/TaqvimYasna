@@ -152,6 +152,53 @@ def today_jalali():
     return "{:04d}/{:02d}/{:02d}".format(jy, jm, jd)
 
 
+
+
+def get_next_letter_number(year=None, cursor=None, reserve=False):
+    """Return the next compact Shamsi-year number; reserve inside a transaction."""
+    if year is None:
+        year = int(today_jalali().split("/")[0])
+
+    own_connection = cursor is None
+    connection = None
+    if own_connection:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+    try:
+        row = cursor.execute(
+            "SELECT LastNumber FROM LetterNumberSequences WHERE ShamsiYear=?",
+            (year,)
+        ).fetchone()
+        last_number = int(row[0]) if row else 0
+
+        # Include older letters created before the sequence table existed.
+        cursor.execute(
+            "SELECT LetterNumber FROM Letters WHERE LetterNumber LIKE ?",
+            (str(year) + "%",)
+        )
+        for record in cursor.fetchall():
+            value = str(record[0] or "")
+            suffix = value[4:]
+            if value.startswith(str(year)) and suffix.isdigit():
+                last_number = max(last_number, int(suffix))
+
+        next_number = last_number + 1
+        result = "{}{}".format(year, next_number)
+
+        if reserve:
+            cursor.execute(
+                "INSERT OR REPLACE INTO LetterNumberSequences "
+                "(ShamsiYear, LastNumber) VALUES (?, ?)",
+                (year, next_number)
+            )
+
+        return result
+    finally:
+        if own_connection:
+            connection.close()
+
+
 def jalali_month_days(year, month):
     if month <= 6:
         return 31
@@ -798,6 +845,7 @@ class LettersForm(QWidget):
         info_layout.setVerticalSpacing(7)
 
         self.txt_number = QLineEdit()
+        self.txt_number.setReadOnly(True)
         self.txt_date = QLineEdit()
         self.txt_date.setReadOnly(True)
 
@@ -2209,9 +2257,9 @@ class LettersForm(QWidget):
         letter_date = self.txt_date.text().strip()
         letter_body = self.txt_body.toHtml()
 
-        if not letter_number:
+        if not letter_date:
             QMessageBox.warning(
-                self, "توجه", "شماره نامه را وارد کنید."
+                self, "توجه", "تاریخ نامه را انتخاب کنید."
             )
             return
 
@@ -2240,6 +2288,13 @@ class LettersForm(QWidget):
 
         try:
             if self.current_letter_id is None:
+                # رزرو شماره و درج نامه در یک تراکنش؛ در ثبت هم‌زمان
+                # کاربران، شماره تکراری تولید نمی‌شود.
+                cursor.execute("BEGIN IMMEDIATE")
+                current_year = int(today_jalali().split("/")[0])
+                letter_number = get_next_letter_number(
+                    current_year, cursor=cursor, reserve=True
+                )
                 cursor.execute("""
                     INSERT INTO Letters
                     (
@@ -2264,14 +2319,12 @@ class LettersForm(QWidget):
                 cursor.execute("""
                     UPDATE Letters
                     SET
-                        LetterNumber = ?,
                         LetterDate = ?,
                         SubjectID = ?,
                         SignatorID = ?,
                         LetterBody = ?
                     WHERE LetterID = ?
                 """, (
-                    letter_number,
                     letter_date,
                     subject_id,
                     signator_id,
@@ -2296,6 +2349,7 @@ class LettersForm(QWidget):
 
             conn.commit()
 
+            self.txt_number.setText(letter_number)
             self.selected_receiver_ids = receiver_ids
             self.update_receiver_display()
 
@@ -2413,7 +2467,7 @@ class LettersForm(QWidget):
         self.current_letter_id = None
         self.selected_receiver_ids = []
 
-        self.txt_number.clear()
+        self.txt_number.setText(get_next_letter_number())
         self.txt_date.setText(today_jalali())
         self.txt_body.clear()
 
