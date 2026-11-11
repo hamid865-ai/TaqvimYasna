@@ -87,6 +87,14 @@ def guard_class_methods(form_class, permission_key, method_names):
             if not can_edit(user, permission_key):
                 show_denied(self)
                 return None
+            # QPushButton.clicked may supply a boolean to a slot that
+            # originally accepted no arguments.
+            code = getattr(_original, "__code__", None)
+            if (
+                args and isinstance(args[0], bool)
+                and code is not None and code.co_argcount == 1
+            ):
+                args = args[1:]
             return _original(self, *args, **kwargs)
 
         setattr(form_class, method_name, guarded)
