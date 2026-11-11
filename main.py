@@ -23,6 +23,11 @@ from forms.postal import PostalForm
 from forms.reminders import RemindersForm
 from forms.reports import ReportsForm
 from forms.settings import SettingsUsersForm
+from forms.login import LoginDialog
+from security import (
+    has_permission, can_edit, apply_read_only,
+    protect_form_methods, show_denied
+)
 
 # فایل سخن روز را در مرحله بعد ایجاد می‌کنیم.
 try:
@@ -113,8 +118,10 @@ class AnalogClock(QWidget):
 
 
 class YasnaWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, user):
         super().__init__()
+        self.current_user = user or {}
+        self.menu_buttons = {}
 
         self.setWindowTitle("Yasna | سیستم مدیریت مکاتبات اداری")
         self.setMinimumSize(1100, 700)
@@ -128,6 +135,7 @@ class YasnaWindow(QMainWindow):
         self.settings_window = None
 
         self.create_ui()
+        self.apply_menu_permissions()
         self.refresh_dashboard()
 
         # ساعت دیجیتال هر ثانیه به‌روز می‌شود.
@@ -146,6 +154,10 @@ class YasnaWindow(QMainWindow):
         self.dashboard_timer = QTimer(self)
         self.dashboard_timer.timeout.connect(self.refresh_dashboard)
         self.dashboard_timer.start(60000)
+
+        self.session_timer = QTimer(self)
+        self.session_timer.timeout.connect(self.verify_active_session)
+        self.session_timer.start(60000)
 
     def create_ui(self):
         self.stack = QStackedWidget()
@@ -217,9 +229,27 @@ class YasnaWindow(QMainWindow):
             button.clicked.connect(
                 lambda checked=False, k=key: self.menu_clicked(k)
             )
+            self.menu_buttons[key] = button
             side_layout.addWidget(button)
 
         side_layout.addStretch()
+
+        user_label = QLabel(
+            "{}\\n{}".format(
+                self.current_user.get("FullName", ""),
+                self.current_user.get("Role", "")
+            )
+        )
+        user_label.setAlignment(Qt.AlignCenter)
+        user_label.setStyleSheet(
+            "color:#E8D7AF;font-size:10px;padding:8px;"
+        )
+        side_layout.addWidget(user_label)
+
+        logout_button = QPushButton("خروج از حساب")
+        logout_button.setMinimumHeight(36)
+        logout_button.clicked.connect(self.logout)
+        side_layout.addWidget(logout_button)
 
         version = QLabel("Yasna Desktop  |  Version 1.0")
         version.setAlignment(Qt.AlignCenter)
@@ -655,7 +685,24 @@ class YasnaWindow(QMainWindow):
             str.maketrans("0123456789", digits)
         )
 
+    def apply_menu_permissions(self):
+        for key, button in self.menu_buttons.items():
+            allowed = (
+                key == "dashboard"
+                or has_permission(self.current_user, key)
+            )
+            if key == "settings":
+                allowed = self.current_user.get("Role") == "مدیر سیستم"
+            button.setVisible(allowed)
+
     def menu_clicked(self, key):
+        if key != "dashboard" and not has_permission(self.current_user, key):
+            show_denied(self, "برای ورود به این بخش دسترسی ندارید.")
+            return
+        if key == "settings" and self.current_user.get("Role") != "مدیر سیستم":
+            show_denied(self, "مدیریت کاربران فقط در اختیار مدیر سیستم است.")
+            return
+
         if key == "dashboard":
             self.show_dashboard()
 
@@ -683,14 +730,25 @@ class YasnaWindow(QMainWindow):
         self.stack.setCurrentWidget(form)
 
     def open_persons(self):
+        if not has_permission(self.current_user, "persons"):
+            show_denied(self)
+            return
         if self.persons_window is None:
             self.persons_window = PersonsForm()
+            apply_read_only(self.persons_window, self.current_user, "persons")
+            protect_form_methods(
+                self.persons_window, self.current_user, "persons",
+                ["save_person", "delete_person", "remove_template"]
+            )
 
         self.persons_window.show()
         self.persons_window.raise_()
         self.persons_window.activateWindow()
 
     def open_letters(self):
+        if not has_permission(self.current_user, "letters"):
+            show_denied(self)
+            return
         if self.letters_window is None:
             self.letters_window = LettersForm(
                 parent=self,
@@ -698,30 +756,55 @@ class YasnaWindow(QMainWindow):
                 on_exit=self.close
             )
             self.stack.addWidget(self.letters_window)
+            apply_read_only(self.letters_window, self.current_user, "letters")
+            protect_form_methods(
+                self.letters_window, self.current_user, "letters",
+                ["save_letter", "delete_letter", "add_attachments", "remove_attachment"]
+            )
 
         self.stack.setCurrentWidget(self.letters_window)
 
     def open_postal(self):
+        if not has_permission(self.current_user, "postal"):
+            show_denied(self)
+            return
         if self.postal_window is None:
             self.postal_window = PostalForm(
                 parent=self,
                 on_back=self.show_dashboard
             )
             self.stack.addWidget(self.postal_window)
+            apply_read_only(self.postal_window, self.current_user, "postal")
+            protect_form_methods(
+                self.postal_window, self.current_user, "postal",
+                ["save_record", "mark_sent", "mark_delivered", "delete_record",
+                 "capture_mouse_signature", "upload_signature", "clear_signature"]
+            )
 
         self.stack.setCurrentWidget(self.postal_window)
 
     def open_reminders(self):
+        if not has_permission(self.current_user, "reminders"):
+            show_denied(self)
+            return
         if self.reminders_window is None:
             self.reminders_window = RemindersForm(
                 parent=self,
                 on_back=self.show_dashboard
             )
             self.stack.addWidget(self.reminders_window)
+            apply_read_only(self.reminders_window, self.current_user, "reminders")
+            protect_form_methods(
+                self.reminders_window, self.current_user, "reminders",
+                ["save_reminder", "mark_done", "delete_reminder"]
+            )
 
         self.stack.setCurrentWidget(self.reminders_window)
 
     def open_reports(self):
+        if not has_permission(self.current_user, "reports"):
+            show_denied(self)
+            return
         if self.reports_window is None:
             self.reports_window = ReportsForm(
                 parent=self,
@@ -733,6 +816,9 @@ class YasnaWindow(QMainWindow):
 
 
     def open_settings(self):
+        if self.current_user.get("Role") != "مدیر سیستم":
+            show_denied(self, "تنظیمات و مدیریت کاربران فقط در اختیار مدیر سیستم است.")
+            return
         if self.settings_window is None:
             self.settings_window = SettingsUsersForm(
                 parent=self,
@@ -743,6 +829,34 @@ class YasnaWindow(QMainWindow):
             self.settings_window.load_settings()
             self.settings_window.load_users()
         self.stack.setCurrentWidget(self.settings_window)
+
+    def logout(self):
+        answer = QMessageBox.question(
+            self, "خروج از حساب",
+            "از حساب کاربری خارج شوید؟",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if answer == QMessageBox.Yes:
+            QApplication.quit()
+
+    def verify_active_session(self):
+        user_id = self.current_user.get("UserID")
+        if user_id is None:
+            return
+        conn = get_connection()
+        try:
+            row = conn.execute(
+                "SELECT IsActive FROM AppUsers WHERE UserID=?",
+                (user_id,)
+            ).fetchone()
+        finally:
+            conn.close()
+        if not row or not row[0]:
+            QMessageBox.warning(
+                self, "حساب غیرفعال شد",
+                "حساب کاربری شما غیرفعال شده است. برنامه بسته می‌شود."
+            )
+            QApplication.quit()
 
     def apply_theme(self, theme):
         if theme == "dark":
@@ -781,7 +895,9 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setFont(QFont("Tahoma", 10))
 
-    window = YasnaWindow()
-    window.showMaximized()
-
-    sys.exit(app.exec_())
+    login = LoginDialog()
+    if login.exec_() == LoginDialog.Accepted and login.user:
+        window = YasnaWindow(login.user)
+        window.showMaximized()
+        sys.exit(app.exec_())
+    sys.exit(0)
