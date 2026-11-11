@@ -234,8 +234,16 @@ class LoginDialog(QDialog):
         finally:
             conn.close()
 
+        if not user_id_row:
+            QMessageBox.critical(
+                self, "خطای ورود",
+                "حساب مدیر ایجاد شد، اما شناسه کاربر از پایگاه داده دریافت نشد. "
+                "برنامه را دوباره اجرا کنید."
+            )
+            return
+
         self.user = {
-            "UserID": int(user_id_row[0]) if user_id_row else None,
+            "UserID": int(user_id_row[0]),
             "Username": username,
             "FullName": full_name, "Role": "مدیر سیستم",
             "IsActive": True, "Permissions": permissions
