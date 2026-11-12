@@ -368,7 +368,7 @@ class YasnaWindow(QMainWindow):
         logout_button.setCursor(Qt.PointingHandCursor)
         logout_button.clicked.connect(self.logout)
         side.addWidget(logout_button)
-        root.addWidget(side)
+        root.addWidget(sidebar)
 
         # محتوای اصلی
         content = QWidget()
