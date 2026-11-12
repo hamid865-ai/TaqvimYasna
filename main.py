@@ -283,7 +283,7 @@ class YasnaWindow(QMainWindow):
         side_layout.addStretch()
 
         user_label = QLabel(
-            "{}\\n{}".format(
+            "{}\n{}".format(
                 self.current_user.get("FullName", ""),
                 self.current_user.get("Role", "")
             )
@@ -440,7 +440,7 @@ class YasnaWindow(QMainWindow):
             "color:%s;font-size:25px;font-weight:bold;" % NAVY
         )
         welcome_text = QLabel(
-            "به فضای کاری یسنا خوش آمدید.\\n"
+            "به فضای کاری یسنا خوش آمدید.\n"
             "مدیریت نامه‌ها، مخاطبان و یادآوری‌ها در یک نگاه."
         )
         welcome_text.setWordWrap(True)
