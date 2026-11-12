@@ -20,6 +20,14 @@ from PyQt5.QtGui import (
     QFont, QPainter, QPen, QBrush, QColor, QPolygonF
 )
 
+try:
+    from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+    MEDIA_AVAILABLE = True
+except ImportError:
+    QMediaPlayer = None
+    QMediaContent = None
+    MEDIA_AVAILABLE = False
+
 
 
 
