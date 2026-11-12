@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="260" viewBox="0 0 1000 260">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#244D70"/><stop offset="1" stop-color="#89A7B9"/></linearGradient>
+ <linearGradient id="mount" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7E0E4"/><stop offset="1" stop-color="#73899B"/></linearGradient>
+</defs>
+<rect width="1000" height="260" rx="18" fill="url(#sky)"/>
+<circle cx="845" cy="55" r="27" fill="#F4DDA6" opacity=".85"/>
+<path d="M0 165 L70 95 125 137 205 63 278 143 350 82 430 145 515 67 605 142 690 82 775 143 865 78 1000 160 L1000 260 L0 260Z" fill="url(#mount)"/>
+<path d="M0 187 L85 143 155 176 250 125 340 182 430 132 530 181 625 128 720 184 830 130 920 178 1000 145 L1000 260 L0 260Z" fill="#526D7C" opacity=".65"/>
+<g fill="#E8E2D3" stroke="#F7E7C6" stroke-width="3">
+ <path d="M478 226 L493 100 L507 100 L522 226Z"/>
+ <path d="M485 113 L515 113 L520 124 L480 124Z"/>
+ <path d="M488 91 L512 91 L518 105 L482 105Z"/>
+ <path d="M494 72 L506 72 L511 92 L489 92Z"/>
+ <path d="M498 44 L502 44 L504 73 L496 73Z"/>
+ <path d="M496 44 L504 44 L502 37 L498 37Z"/>
+</g>
+<g fill="#D5B77B" opacity=".95">
+ <rect x="50" y="192" width="62" height="68"/><rect x="125" y="178" width="50" height="82"/>
+ <rect x="188" y="201" width="76" height="59"/><rect x="278" y="185" width="55" height="75"/>
+ <rect x="350" y="198" width="70" height="62"/><rect x="545" y="192" width="62" height="68"/>
+ <rect x="625" y="177" width="58" height="83"/><rect x="700" y="194" width="78" height="66"/>
+ <rect x="800" y="180" width="65" height="80"/><rect x="885" y="198" width="70" height="62"/>
+</g>
+<g fill="#F7EAD0" opacity=".75">
+ <path d="M50 192h62v7H50zM125 178h50v7h-50zM188 201h76v7h-76zM278 185h55v7h-55zM350 198h70v7h-70zM545 192h62v7h-62zM625 177h58v7h-58zM700 194h78v7h-78zM800 180h65v7h-65zM885 198h70v7h-70z"/>
+</g>
+<g stroke="#F8E6BD" stroke-width="3">
+ <path d="M66 210v10m15-10v10m15-10v10M140 198v10m15-10v10m-15 18v10m15-10v10M300 205v10m16-10v10M370 215v10m18-10v10M565 210v10m16-10v10M645 195v10m16-10v10M720 213v10m18-10v10M820 198v10m17-10v10M905 215v10m18-10v10"/>
+</g>
+<g transform="translate(24 22)">
+ <rect width="104" height="58" rx="5" fill="#fff" opacity=".96"/>
+ <path d="M5 5h94v16H5z" fill="#23965A"/>
+ <path d="M5 37h94v16H5z" fill="#D83B43"/>
+ <path d="M50 23l-8 6 8 6 8-6z" fill="#D83B43"/>
+ <text x="52" y="33" text-anchor="middle" font-size="8" font-family="Tahoma" fill="#23965A">الله</text>
+</g>
+<rect x="1.5" y="1.5" width="997" height="257" rx="17" fill="none" stroke="#D8B66A" stroke-width="3"/>
+</svg>
