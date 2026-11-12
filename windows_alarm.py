@@ -92,6 +92,43 @@ def schedule_reminder_task(reminder_id, year, month, day, hour, minute):
         return False, str(error)
 
 
+def sync_pending_reminders():
+    """Create Windows tasks for all pending reminders when Yasna starts."""
+    try:
+        from database.database import get_connection
+        from forms.letters import jalali_to_gregorian
+
+        connection = get_connection()
+        try:
+            rows = connection.execute("""
+                SELECT ReminderID, ReminderDate, COALESCE(ReminderTime, '')
+                FROM Reminders
+                WHERE COALESCE(IsDone, 0) = 0
+                  AND COALESCE(NotifiedAt, '') = ''
+            """).fetchall()
+        finally:
+            connection.close()
+
+        for reminder_id, jalali_date, time_text in rows:
+            try:
+                parts = [int(value) for value in jalali_date.split("/")]
+                gy, gm, gd = jalali_to_gregorian(
+                    parts[0], parts[1], parts[2]
+                )
+                hour, minute = [
+                    int(value) for value in (time_text or "23:59").split(":")[:2]
+                ]
+                schedule_reminder_task(
+                    reminder_id, gy, gm, gd, hour, minute
+                )
+            except Exception as error:
+                print("Could not schedule reminder {}: {}".format(
+                    reminder_id, error
+                ))
+    except Exception as error:
+        print("Windows reminder synchronization failed:", error)
+
+
 def run_alarm(reminder_id):
     """Entry point launched by Task Scheduler, without opening the Yasna UI."""
     try:
