@@ -650,6 +650,7 @@ class YasnaWindow(QMainWindow):
 
         self.music_player = QMediaPlayer(self)
         self.music_player.setVolume(35)
+        self.music_player.setLoops(-1)
         if self.music_path and os.path.isfile(self.music_path):
             self.music_player.setMedia(
                 QMediaContent(QUrl.fromLocalFile(self.music_path))
@@ -1037,6 +1038,9 @@ class YasnaWindow(QMainWindow):
         )
         if answer != QMessageBox.Yes:
             return
+
+        if self.music_player is not None:
+            self.music_player.stop()
 
         if self.persons_window is not None:
             self.persons_window.close()
