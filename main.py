@@ -637,6 +637,8 @@ class YasnaWindow(QMainWindow):
     def setup_music(self):
         if not self.music_available:
             self.btn_music_toggle.setEnabled(False)
+            self.btn_choose_music.setEnabled(False)
+            self.music_auto_checkbox.setEnabled(False)
             self.btn_music_toggle.setToolTip(
                 "ماژول چندرسانه‌ای PyQt5 در این نصب در دسترس نیست."
             )
