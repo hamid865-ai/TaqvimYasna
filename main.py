@@ -6,6 +6,8 @@ import math
 import sqlite3
 import base64
 from windows_alarm import sync_pending_reminders
+from database.database import initialize_database
+from forms.login import LoginDialog
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
@@ -10624,25 +10626,15 @@ class AnalogClock(QWidget):
 
 
 class DashboardCanvas(QWidget):
-    """تصویر مرجع داشبورد با لایه‌های زنده و قابل تغییر."""
+    """داشبورد برداری و مستقل از فایل‌های تصویری."""
     BASE_WIDTH = 1648
     BASE_HEIGHT = 893
 
-    def __init__(self, image_path, parent=None):
+    def __init__(self, image_path=None, parent=None):
         super().__init__(parent)
-        self._pixmap = QPixmap(image_path)
-        if self._pixmap.isNull():
-            # نسخهٔ داخلی تصویر؛ حتی اگر main.jpg کنار برنامه نباشد، پس‌زمینه نمایش داده می‌شود.
-            try:
-                self._pixmap.loadFromData(base64.b64decode(DASHBOARD_IMAGE_B64))
-            except Exception:
-                pass
-        # تصویر Dash.jpg تمام‌صفحه و بدون برش استفاده می‌شود.
-        if not self._pixmap.isNull():
-            self.BASE_WIDTH = self._pixmap.width()
-            self.BASE_HEIGHT = self._pixmap.height()
         self._placements = []
         self.setMinimumSize(1100, 700)
+        self.setAttribute(Qt.WA_StyledBackground, True)
 
     def place(self, widget, x, y, width, height):
         widget.setParent(self)
@@ -10666,11 +10658,79 @@ class DashboardCanvas(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform)
-        if not self._pixmap.isNull():
-            painter.drawPixmap(self.rect(), self._pixmap)
-        else:
-            painter.fillRect(self.rect(), QColor("#E9DDC5"))
+        painter.setRenderHint(QPainter.Antialiasing)
+        sx = self.width() / float(self.BASE_WIDTH)
+        sy = self.height() / float(self.BASE_HEIGHT)
+        painter.scale(sx, sy)
+
+        # پس‌زمینه روشن و نوار کناری سرمه‌ای
+        painter.fillRect(0, 0, 1648, 893, QColor("#F2F5F9"))
+        painter.fillRect(0, 0, 240, 893, QColor("#142D4E"))
+        painter.fillRect(0, 0, 240, 8, QColor("#D4AF37"))
+        painter.setPen(QColor("#D4AF37"))
+        painter.drawLine(24, 145, 216, 145)
+
+        # برند و سربرگ
+        painter.setPen(QColor("#F4D98F"))
+        painter.setFont(QFont("Tahoma", 22, QFont.Bold))
+        painter.drawText(28, 78, "YASNA")
+        painter.setPen(QColor("#C6D2E0"))
+        painter.setFont(QFont("Tahoma", 9))
+        painter.drawText(29, 105, "OFFICE MANAGEMENT")
+        painter.setPen(QColor("#183B56"))
+        painter.setFont(QFont("Tahoma", 18, QFont.Bold))
+        painter.drawText(275, 75, "داشبورد مدیریتی")
+        painter.setPen(QColor("#718096"))
+        painter.setFont(QFont("Tahoma", 9))
+        painter.drawText(278, 101, "نمای کلی فعالیت‌ها و دسترسی سریع به بخش‌های سامانه")
+
+        # کارت‌های اصلی با سایه بصری ملایم
+        cards = [
+            (270, 120, 1320, 112, "#FFFFFF"),
+            (270, 250, 250, 292, "#FFFFFF"),
+            (540, 250, 205, 140, "#FFFFFF"),
+            (760, 250, 205, 140, "#FFFFFF"),
+            (980, 250, 205, 140, "#FFFFFF"),
+            (1200, 250, 205, 140, "#FFFFFF"),
+            (1420, 250, 170, 140, "#FFFFFF"),
+            (270, 560, 650, 300, "#FFFFFF"),
+            (940, 560, 650, 300, "#FFFFFF"),
+        ]
+        for x, y, w, h, color in cards:
+            painter.setPen(QPen(QColor("#E1E7EF"), 1))
+            painter.setBrush(QColor(color))
+            painter.drawRoundedRect(x, y, w, h, 15, 15)
+
+        # نوارهای طلایی ظریف برای هویت بصری
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor("#D4AF37"))
+        painter.drawRoundedRect(270, 120, 6, 112, 3, 3)
+        painter.drawRoundedRect(270, 560, 6, 300, 3, 3)
+        painter.drawRoundedRect(940, 560, 6, 300, 3, 3)
+
+        # تیتر کارت‌ها
+        painter.setPen(QColor("#183B56"))
+        painter.setFont(QFont("Tahoma", 11, QFont.Bold))
+        painter.drawText(295, 595, "یادآوری‌های امروز")
+        painter.drawText(965, 595, "سخن روز")
+        painter.setPen(QColor("#8793A3"))
+        painter.setFont(QFont("Tahoma", 8))
+        painter.drawText(295, 615, "پیگیری کارهای زمان‌بندی‌شده")
+        painter.drawText(965, 615, "اندیشه‌ای برای شروعی بهتر")
+
+        # برچسب کارت‌های آماری
+        stat_titles = [
+            (540, "نامه‌های ثبت‌شده"),
+            (760, "مرسوله‌های پستی"),
+            (980, "اشخاص"),
+            (1200, "مخاطبان"),
+            (1420, "یادآوری‌ها"),
+        ]
+        painter.setPen(QColor("#718096"))
+        painter.setFont(QFont("Tahoma", 9, QFont.Bold))
+        for x, title in stat_titles:
+            painter.drawText(x + 10, 285, title)
+
         painter.end()
 
 
@@ -10730,21 +10790,18 @@ class YasnaWindow(QMainWindow):
         self.stack.addWidget(self.dashboard)
 
     def create_dashboard(self):
-        image_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "Dash.jpg"
-        )
-        self.dashboard = DashboardCanvas(image_path)
+        self.dashboard = DashboardCanvas()
 
-        # لایه‌های زنده دقیقاً روی بخش‌های متناظر تصویر مرجع قرار می‌گیرند.
+        # منوی کناری؛ دکمه‌های یکدست با وضعیت hover و انتخاب
         self.menu_buttons = {}
         menu_areas = [
-            ("dashboard", 8, 244, 184, 66),
-            ("letters", 8, 319, 184, 65),
-            ("postal", 8, 385, 184, 64),
-            ("persons", 8, 450, 184, 65),
-            ("reminders", 8, 516, 184, 64),
-            ("reports", 8, 581, 184, 64),
-            ("settings", 8, 646, 184, 64),
+            ("dashboard", 18, 175, 204, 54),
+            ("letters", 18, 235, 204, 54),
+            ("postal", 18, 295, 204, 54),
+            ("persons", 18, 355, 204, 54),
+            ("reminders", 18, 415, 204, 54),
+            ("reports", 18, 475, 204, 54),
+            ("settings", 18, 535, 204, 54),
         ]
         menu_titles = {
             "dashboard": "⌂   داشبورد",
@@ -10758,33 +10815,24 @@ class YasnaWindow(QMainWindow):
         for key, x, y, width, height in menu_areas:
             button = QPushButton(menu_titles[key], self.dashboard)
             button.setLayoutDirection(Qt.RightToLeft)
-            button.setFont(QFont("Tahoma", 11, QFont.Bold))
+            button.setFont(QFont("Tahoma", 10, QFont.Bold))
             button.setCursor(Qt.PointingHandCursor)
-            button.setToolTip({
-                "dashboard": "داشبورد",
-                "letters": "نامه‌های اداری",
-                "postal": "مرسوله‌های پستی",
-                "persons": "اشخاص و مخاطبان",
-                "reminders": "یادآوری‌ها",
-                "reports": "گزارش‌گیری",
-                "settings": "تنظیمات و کاربران"
-            }[key])
             button.setStyleSheet("""
                 QPushButton {
-                    background:rgba(11,31,62,205);
-                    color:#F4D99A;
-                    border:1px solid rgba(216,182,106,125);
+                    background:transparent;
+                    color:#DCE6F1;
+                    border:1px solid transparent;
                     border-radius:9px;
                     text-align:right;
-                    padding-right:18px;
+                    padding-right:17px;
                 }
                 QPushButton:hover {
-                    background:rgba(216,182,106,235);
-                    color:#142D4E;
-                    border:1px solid #FFF0C8;
+                    background:#244568;
+                    color:#F4D98F;
+                    border:1px solid #806B38;
                 }
                 QPushButton:pressed {
-                    background:rgba(255,235,190,245);
+                    background:#D4AF37;
                     color:#142D4E;
                 }
             """)
@@ -10794,87 +10842,67 @@ class YasnaWindow(QMainWindow):
             self.dashboard.place(button, x, y, width, height)
             self.menu_buttons[key] = button
 
-        # خروج از سامانه روی دکمه خروج داخل تصویر مرجع
-        logout_button = QPushButton("", self.dashboard)
+        logout_button = QPushButton("⏻   خروج از سامانه", self.dashboard)
         logout_button.setCursor(Qt.PointingHandCursor)
-        logout_button.setToolTip("خروج از سامانه")
+        logout_button.setFont(QFont("Tahoma", 9, QFont.Bold))
         logout_button.setStyleSheet("""
-            QPushButton { background:transparent;border:1px solid transparent;border-radius:8px; }
-            QPushButton:hover { background:rgba(220,90,75,35);border:1px solid rgba(220,90,75,170); }
+            QPushButton {
+                background:#7E3440;color:#FFFFFF;
+                border:1px solid #B66B70;border-radius:9px;
+                padding:7px;
+            }
+            QPushButton:hover { background:#A9434D; }
         """)
         logout_button.clicked.connect(self.logout)
-        logout_button.setText("⏻   خروج از سامانه")
-        logout_button.setFont(QFont("Tahoma", 10, QFont.Bold))
-        logout_button.setStyleSheet("background:rgba(110,28,35,220);color:#FFF0D0;border:1px solid #D8B66A;border-radius:8px;")
-        self.dashboard.place(logout_button, 15, 765, 208, 55)
+        self.dashboard.place(logout_button, 18, 700, 204, 48)
 
-        # سخن روز در قاب بالایی؛ متن و گوینده از بانک سخنان خوانده می‌شوند.
-        self.quote_top_source = QLabel("", self.dashboard)
-        self.quote_top_source.setAlignment(Qt.AlignCenter)
-        self.quote_top_source.setStyleSheet(
-            "background:rgba(250,240,220,238);color:#142D4E;font-size:15px;"
-            "font-weight:bold;border:0;"
-        )
-        self.dashboard.place(self.quote_top_source, 590, 244, 700, 35)
-
-        self.quote_top_text = QLabel("", self.dashboard)
-        self.quote_top_text.setWordWrap(True)
-        self.quote_top_text.setAlignment(Qt.AlignCenter)
-        self.quote_top_text.setStyleSheet(
-            "background:rgba(250,240,220,238);color:#172B40;font-size:19px;"
-            "font-weight:bold;border:0;padding:2px;"
-        )
-        self.dashboard.place(self.quote_top_text, 600, 278, 690, 70)
-
-        # ساعت عقربه‌ای زنده در مرکز قاب ساعت تصویر مرجع
+        # ساعت عقربه‌ای در کارت اختصاصی
         self.analog_clock = AnalogClock(self.dashboard)
-        self.dashboard.place(self.analog_clock, 258, 260, 235, 235)
+        self.dashboard.place(self.analog_clock, 292, 275, 205, 205)
 
-        # تاریخ شمسی و ساعت دیجیتال زیر ساعت عقربه‌ای تصویر.
         self.date_label = QLabel("", self.dashboard)
         self.date_label.setAlignment(Qt.AlignCenter)
         self.date_label.setStyleSheet(
-            "background:rgba(246,235,213,225);color:#142D4E;"
-            "font-size:12px;font-weight:bold;border:0;"
+            "background:transparent;color:#52657A;"
+            "font-size:11px;font-weight:bold;border:0;"
         )
-        self.dashboard.place(self.date_label, 225, 510, 310, 30)
+        self.dashboard.place(self.date_label, 282, 480, 225, 25)
 
         self.digital_clock = QLabel("", self.dashboard)
         self.digital_clock.setAlignment(Qt.AlignCenter)
         self.digital_clock.setStyleSheet(
-            "background:rgba(246,235,213,225);color:#9B7330;"
-            "font-size:13px;font-weight:bold;border:0;"
+            "background:transparent;color:#B18A2D;"
+            "font-size:18px;font-weight:bold;border:0;"
         )
-        self.dashboard.place(self.digital_clock, 270, 540, 220, 25)
+        self.dashboard.place(self.digital_clock, 282, 507, 225, 28)
 
-        # اعداد پنج کارت آماری؛ عنوان‌ها و آیکون‌های تصویر مرجع دست‌نخورده‌اند.
+        # پنج شاخص آماری؛ مقادیر از دیتابیس به‌روزرسانی می‌شوند
         self.stat_labels = {}
         stat_positions = {
-            "letters": (590, 477, 165, 43),
-            "postal": (800, 477, 170, 43),
-            "persons": (1010, 477, 170, 43),
-            "contacts": (1220, 477, 170, 43),
-            "reminders": (1430, 477, 165, 43),
+            "letters": (555, 310, 175, 58),
+            "postal": (775, 310, 175, 58),
+            "persons": (995, 310, 175, 58),
+            "contacts": (1215, 310, 175, 58),
+            "reminders": (1430, 310, 150, 58),
         }
         for key, geometry in stat_positions.items():
             number = QLabel("۰", self.dashboard)
             number.setAlignment(Qt.AlignCenter)
             number.setStyleSheet(
-                "background:rgba(255,250,242,235);color:#142D4E;"
-                "font-size:25px;font-weight:bold;border:0;"
+                "background:transparent;color:#183B56;"
+                "font-size:27px;font-weight:bold;border:0;"
             )
             self.dashboard.place(number, *geometry)
             self.stat_labels[key] = number
 
-        # سربرگ و جدول یادآوری‌های امروز؛ ساعت، عنوان و وضعیت جداگانه
-        self.today_reminders_title = QLabel("📅  یادآوری‌های امروز  |  ۰ مورد", self.dashboard)
-        self.today_reminders_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # جدول یادآوری‌ها
+        self.today_reminders_title = QLabel("۰ مورد", self.dashboard)
+        self.today_reminders_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.today_reminders_title.setStyleSheet(
-            "background:rgba(20,45,78,238);color:#F2D99F;"
-            "font-size:13px;font-weight:bold;border:1px solid #D8B66A;"
-            "border-radius:5px;padding:4px 10px;"
+            "background:#EEF3F8;color:#A17B27;font-size:10px;"
+            "font-weight:bold;border:0;border-radius:8px;padding:3px 10px;"
         )
-        self.dashboard.place(self.today_reminders_title, 228, 606, 515, 31)
+        self.dashboard.place(self.today_reminders_title, 780, 575, 110, 27)
 
         self.today_reminders = QTableWidget(0, 3, self.dashboard)
         self.today_reminders.setHorizontalHeaderLabels(["ساعت", "عنوان یادآوری", "وضعیت"])
@@ -10888,85 +10916,103 @@ class YasnaWindow(QMainWindow):
         self.today_reminders.setSelectionMode(QTableWidget.NoSelection)
         self.today_reminders.setAlternatingRowColors(True)
         self.today_reminders.setShowGrid(False)
+        self.today_reminders.setFocusPolicy(Qt.NoFocus)
         self.today_reminders.setStyleSheet("""
             QTableWidget {
-                background:rgba(255,252,246,242);
-                alternate-background-color:rgba(239,233,220,242);
-                color:#142D4E;
-                border:1px solid #D8B66A;
-                border-radius:5px;
-                gridline-color:#E6DCC8;
-                font-size:11px;
+                background:#FFFFFF;
+                alternate-background-color:#F5F8FC;
+                color:#263B50;
+                border:1px solid #E3E9F0;
+                border-radius:9px;
+                font-size:10px;
+                selection-background-color:#E8EFF7;
             }
             QHeaderView::section {
-                background:#1D4165;
-                color:#F7E7BE;
+                background:#EAF0F6;
+                color:#29435E;
                 border:0;
-                border-bottom:1px solid #D8B66A;
-                padding:5px;
+                border-bottom:2px solid #D4AF37;
+                padding:8px 5px;
                 font-weight:bold;
             }
-            QTableWidget::item { padding:5px; }
+            QTableWidget::item { padding:7px; border:0; }
         """)
-        self.dashboard.place(self.today_reminders, 228, 640, 515, 190)
+        self.dashboard.place(self.today_reminders, 288, 625, 615, 215)
 
-        # سخن بزرگان در قاب تزئینی پایین سمت راست.
+        # کارت سخن روز
+        self.quote_top_source = QLabel("", self.dashboard)
+        self.quote_top_source.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.quote_top_source.setStyleSheet(
+            "background:transparent;color:#A17B27;font-size:10px;"
+            "font-weight:bold;border:0;"
+        )
+        self.dashboard.place(self.quote_top_source, 320, 130, 1220, 25)
+
+        self.quote_top_text = QLabel("", self.dashboard)
+        self.quote_top_text.setWordWrap(True)
+        self.quote_top_text.setAlignment(Qt.AlignCenter)
+        self.quote_top_text.setStyleSheet(
+            "background:transparent;color:#263B50;font-size:17px;"
+            "font-weight:bold;border:0;padding:5px;"
+        )
+        self.dashboard.place(self.quote_top_text, 330, 157, 1195, 65)
+
         self.quote_text = QLabel("", self.dashboard)
         self.quote_text.setWordWrap(True)
         self.quote_text.setAlignment(Qt.AlignCenter)
         self.quote_text.setStyleSheet(
-            "background:rgba(250,240,220,242);color:#172B40;"
-            "font-size:17px;font-weight:bold;border:0;padding:8px;"
+            "background:transparent;color:#263B50;"
+            "font-size:17px;font-weight:bold;border:0;padding:10px;"
         )
-        self.dashboard.place(self.quote_text, 820, 685, 690, 105)
+        self.dashboard.place(self.quote_text, 975, 635, 575, 115)
 
         self.quote_meaning = QLabel("", self.dashboard)
         self.quote_meaning.setWordWrap(True)
         self.quote_meaning.setAlignment(Qt.AlignCenter)
         self.quote_meaning.setStyleSheet(
-            "background:transparent;color:#5C5140;font-size:10px;border:0;"
+            "background:transparent;color:#718096;font-size:10px;border:0;"
         )
-        self.dashboard.place(self.quote_meaning, 850, 790, 620, 22)
+        self.dashboard.place(self.quote_meaning, 975, 755, 575, 42)
 
         self.quote_source = QLabel("", self.dashboard)
         self.quote_source.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.quote_source.setStyleSheet(
-            "background:transparent;color:#98733A;font-size:11px;"
+            "background:transparent;color:#A17B27;font-size:10px;"
             "font-weight:bold;border:0;"
         )
-        self.dashboard.place(self.quote_source, 815, 812, 650, 25)
+        self.dashboard.place(self.quote_source, 975, 805, 575, 25)
 
-        # کنترل موسیقی قبلی حفظ شده و در پایین نوار کناری قرار دارد.
+        # ابزار موسیقی در پایین منوی کناری
         self.btn_choose_music = QPushButton("♫", self.dashboard)
         self.btn_choose_music.setToolTip("انتخاب موسیقی")
         self.btn_choose_music.setCursor(Qt.PointingHandCursor)
         self.btn_choose_music.setStyleSheet(
-            "background:rgba(22,49,76,220);color:#F2D99F;"
-            "border:1px solid #C5A45E;border-radius:5px;font-size:13px;"
+            "background:#244568;color:#F4D98F;"
+            "border:1px solid #806B38;border-radius:7px;font-size:14px;"
         )
         self.btn_choose_music.clicked.connect(self.choose_music)
-        self.dashboard.place(self.btn_choose_music, 18, 850, 45, 30)
+        self.dashboard.place(self.btn_choose_music, 22, 810, 42, 38)
 
         self.btn_music_toggle = QPushButton("▶", self.dashboard)
         self.btn_music_toggle.setToolTip("پخش یا توقف موسیقی")
         self.btn_music_toggle.setCursor(Qt.PointingHandCursor)
         self.btn_music_toggle.setStyleSheet(
-            "background:rgba(22,49,76,220);color:#F2D99F;"
-            "border:1px solid #C5A45E;border-radius:5px;font-size:12px;"
+            "background:#244568;color:#F4D98F;"
+            "border:1px solid #806B38;border-radius:7px;font-size:12px;"
         )
         self.btn_music_toggle.clicked.connect(self.toggle_music)
-        self.dashboard.place(self.btn_music_toggle, 68, 850, 45, 30)
+        self.dashboard.place(self.btn_music_toggle, 70, 810, 42, 38)
 
         self.music_auto_checkbox = QCheckBox("پخش خودکار", self.dashboard)
         self.music_auto_checkbox.setChecked(True)
         self.music_auto_checkbox.setStyleSheet(
-            "background:rgba(22,49,76,190);color:#F2D99F;font-size:9px;"
+            "background:transparent;color:#DCE6F1;font-size:8px;"
         )
         self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
-        self.dashboard.place(self.music_auto_checkbox, 116, 850, 78, 30)
+        self.dashboard.place(self.music_auto_checkbox, 116, 810, 100, 38)
 
         self.show_daily_quote()
-        self.update_clock()
+        self.refresh_dashboard()
 
     def update_clock(self):
         now = QTime.currentTime()
