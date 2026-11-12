@@ -126,7 +126,7 @@ POETRY = [
 
 def _build_bank():
     bank = []
-    for base, explanation in WISDOM:
+    for base, explanation in WISDOM[:67]:
         for quote_tail, meaning_tail in REFLECTIONS:
             bank.append((
                 base + " " + quote_tail,
