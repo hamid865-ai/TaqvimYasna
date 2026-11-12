@@ -9,12 +9,27 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QGridLayout, QFrame,
     QStackedWidget, QMessageBox, QGraphicsDropShadowEffect,
-    QScrollArea
+    QScrollArea, QFileDialog, QCheckBox
 )
-from PyQt5.QtCore import Qt, QTimer, QTime, QPointF
+from PyQt5.QtCore import Qt, QTimer, QTime, QPointF, QUrl
 from PyQt5.QtGui import (
     QFont, QPainter, QPen, QBrush, QColor, QPolygonF
 )
+
+try:
+    from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+    MEDIA_AVAILABLE = True
+except Exception:
+    QMediaPlayer = None
+    QMediaContent = None
+    MEDIA_AVAILABLE = False
+
+try:
+    from PyQt5.QtSvg import QSvgWidget
+    SVG_AVAILABLE = True
+except Exception:
+    QSvgWidget = None
+    SVG_AVAILABLE = False
 
 from database.database import initialize_database, get_connection
 from forms.persons import PersonsForm
@@ -146,6 +161,9 @@ class YasnaWindow(QMainWindow):
         self.menu_buttons = {}
         self._allow_close = False
         self.replacement_window = None
+        self.music_player = None
+        self.music_path = ""
+        self.music_available = MEDIA_AVAILABLE
 
         self.setWindowTitle("Yasna | سیستم مدیریت مکاتبات اداری")
         self.setMinimumSize(1100, 700)
@@ -159,6 +177,7 @@ class YasnaWindow(QMainWindow):
         self.settings_window = None
 
         self.create_ui()
+        self.setup_music()
         self.apply_menu_permissions()
         self.refresh_dashboard()
 
@@ -193,6 +212,7 @@ class YasnaWindow(QMainWindow):
 
     def create_dashboard(self):
         root = QHBoxLayout(self.dashboard)
+        root.setDirection(QHBoxLayout.LeftToRight)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
@@ -280,11 +300,12 @@ class YasnaWindow(QMainWindow):
         version.setStyleSheet("color:#AAB7C5; font-size:9px;")
         side_layout.addWidget(version)
 
-        root.addWidget(sidebar)
+        # نوار کناری در انتهای چیدمان چپ‌به‌راست قرار می‌گیرد تا سمت راست باشد.
 
         # محتوای اصلی
         content = QWidget()
         content.setMinimumWidth(760)
+        content.setLayoutDirection(Qt.RightToLeft)
         content.setStyleSheet("background-color:%s;" % CREAM)
         main_layout = QVBoxLayout(content)
         main_layout.setContentsMargins(25, 20, 25, 20)
@@ -292,7 +313,7 @@ class YasnaWindow(QMainWindow):
 
         # سربرگ
         header = QFrame()
-        header.setMinimumHeight(85)
+        header.setMinimumHeight(112)
         header.setStyleSheet("""
             QFrame {
                 background-color: #183B56;
@@ -318,9 +339,42 @@ class YasnaWindow(QMainWindow):
         header_layout.addLayout(title_box)
         header_layout.addStretch()
 
-        flag = QLabel("🇮🇷")
-        flag.setStyleSheet("font-size:38px;")
-        header_layout.addWidget(flag)
+        panorama_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "assets", "tehran_panorama.svg"
+        )
+        if SVG_AVAILABLE and os.path.isfile(panorama_path):
+            panorama = QSvgWidget(panorama_path)
+            panorama.setFixedSize(330, 88)
+            header_layout.addWidget(panorama)
+        else:
+            panorama = QLabel("تهران  |  برج میلاد  |  البرز  🇮🇷")
+            panorama.setStyleSheet("color:#E8D7AF;font-size:15px;font-weight:bold;")
+            header_layout.addWidget(panorama)
+
+        music_controls = QVBoxLayout()
+        self.btn_choose_music = QPushButton("انتخاب آهنگ")
+        self.btn_choose_music.setCursor(Qt.PointingHandCursor)
+        self.btn_choose_music.setStyleSheet(
+            "QPushButton{background:#D8B66A;color:#142D4E;border:0;"
+            "border-radius:7px;padding:6px 10px;font-weight:bold;}"
+        )
+        self.btn_choose_music.clicked.connect(self.choose_music)
+        self.btn_music_toggle = QPushButton("پخش / توقف")
+        self.btn_music_toggle.setCursor(Qt.PointingHandCursor)
+        self.btn_music_toggle.setStyleSheet(
+            "QPushButton{background:#294B6C;color:white;border:1px solid #D8B66A;"
+            "border-radius:7px;padding:6px 10px;}"
+        )
+        self.btn_music_toggle.clicked.connect(self.toggle_music)
+        self.music_auto_checkbox = QCheckBox("پخش خودکار")
+        self.music_auto_checkbox.setChecked(True)
+        self.music_auto_checkbox.setStyleSheet("color:white;font-size:10px;")
+        self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
+        music_controls.addWidget(self.btn_choose_music)
+        music_controls.addWidget(self.btn_music_toggle)
+        music_controls.addWidget(self.music_auto_checkbox)
+        header_layout.addLayout(music_controls)
 
         main_layout.addWidget(header)
 
@@ -494,6 +548,13 @@ class YasnaWindow(QMainWindow):
             "color:white; font-size:15px; padding:12px;"
         )
 
+        self.quote_meaning = QLabel("")
+        self.quote_meaning.setWordWrap(True)
+        self.quote_meaning.setAlignment(Qt.AlignCenter)
+        self.quote_meaning.setStyleSheet(
+            "color:#F3EAD5;font-size:11px;padding:5px 12px;"
+        )
+
         self.quote_source = QLabel("")
         self.quote_source.setAlignment(Qt.AlignCenter)
         self.quote_source.setStyleSheet(
@@ -503,6 +564,7 @@ class YasnaWindow(QMainWindow):
         quote_layout.addWidget(quote_heading)
         quote_layout.addStretch()
         quote_layout.addWidget(self.quote_text)
+        quote_layout.addWidget(self.quote_meaning)
         quote_layout.addWidget(self.quote_source)
         quote_layout.addStretch()
 
@@ -520,6 +582,7 @@ class YasnaWindow(QMainWindow):
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setWidget(content)
         root.addWidget(scroll_area, 1)
+        root.addWidget(sidebar)
 
         self.update_clock()
         self.show_daily_quote()
@@ -529,9 +592,114 @@ class YasnaWindow(QMainWindow):
         self.digital_clock.setText(now.toString("HH:mm:ss"))
 
     def show_daily_quote(self):
-        quote, source = get_daily_quote()
+        item = get_daily_quote()
+        if len(item) >= 3:
+            quote, source, meaning = item[0], item[1], item[2]
+        else:
+            quote, source = item
+            meaning = ""
         self.quote_text.setText("«%s»" % quote)
+        self.quote_meaning.setText(meaning)
         self.quote_source.setText(source)
+
+    def read_app_setting(self, key, default=""):
+        connection = None
+        try:
+            connection = get_connection()
+            row = connection.execute(
+                "SELECT SettingValue FROM AppSettings WHERE SettingKey=?",
+                (key,)
+            ).fetchone()
+            return row[0] if row else default
+        except Exception:
+            return default
+        finally:
+            if connection:
+                connection.close()
+
+    def write_app_setting(self, key, value):
+        connection = None
+        try:
+            connection = get_connection()
+            connection.execute(
+                "INSERT OR REPLACE INTO AppSettings (SettingKey, SettingValue) "
+                "VALUES (?, ?)",
+                (key, str(value))
+            )
+            connection.commit()
+        except Exception as error:
+            print("Music setting error:", error)
+        finally:
+            if connection:
+                connection.close()
+
+    def setup_music(self):
+        if not self.music_available:
+            self.btn_music_toggle.setEnabled(False)
+            self.btn_music_toggle.setToolTip(
+                "ماژول چندرسانه‌ای PyQt5 در این نصب در دسترس نیست."
+            )
+            return
+
+        self.music_path = self.read_app_setting("music_path", "")
+        autoplay = self.read_app_setting("music_autoplay", "1") == "1"
+        self.music_auto_checkbox.blockSignals(True)
+        self.music_auto_checkbox.setChecked(autoplay)
+        self.music_auto_checkbox.blockSignals(False)
+
+        self.music_player = QMediaPlayer(self)
+        self.music_player.setVolume(35)
+        if self.music_path and os.path.isfile(self.music_path):
+            self.music_player.setMedia(
+                QMediaContent(QUrl.fromLocalFile(self.music_path))
+            )
+            if autoplay:
+                self.music_player.play()
+
+    def choose_music(self):
+        path, selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "انتخاب موسیقی آغاز یسنا",
+            os.path.expanduser("~"),
+            "Audio Files (*.mp3 *.wav *.wma *.ogg);;All Files (*.*)"
+        )
+        if not path:
+            return
+
+        self.music_path = os.path.abspath(path)
+        self.write_app_setting("music_path", self.music_path)
+
+        if self.music_player is not None:
+            self.music_player.setMedia(
+                QMediaContent(QUrl.fromLocalFile(self.music_path))
+            )
+            self.music_player.play()
+            self.btn_music_toggle.setText("توقف موسیقی")
+
+    def toggle_music(self):
+        if not self.music_available:
+            QMessageBox.warning(
+                self, "پخش موسیقی",
+                "قابلیت چندرسانه‌ای PyQt5 در این نصب فعال نیست."
+            )
+            return
+
+        if not self.music_path or not os.path.isfile(self.music_path):
+            self.choose_music()
+            return
+
+        if self.music_player is None:
+            self.setup_music()
+
+        if self.music_player.state() == QMediaPlayer.PlayingState:
+            self.music_player.pause()
+            self.btn_music_toggle.setText("ادامه موسیقی")
+        else:
+            self.music_player.play()
+            self.btn_music_toggle.setText("توقف موسیقی")
+
+    def save_music_autoplay(self, checked):
+        self.write_app_setting("music_autoplay", "1" if checked else "0")
 
     def refresh_dashboard(self):
         self.update_clock()
@@ -938,6 +1106,8 @@ class YasnaWindow(QMainWindow):
         )
 
         if answer == QMessageBox.Yes:
+            if self.music_player is not None:
+                self.music_player.stop()
             if self.persons_window is not None:
                 self.persons_window.close()
             event.accept()
