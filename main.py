@@ -652,13 +652,23 @@ class YasnaWindow(QMainWindow):
 
         self.music_player = QMediaPlayer(self)
         self.music_player.setVolume(35)
-        self.music_player.setLoops(-1)
+        self.music_player.mediaStatusChanged.connect(
+            self.handle_music_status
+        )
         if self.music_path and os.path.isfile(self.music_path):
             self.music_player.setMedia(
                 QMediaContent(QUrl.fromLocalFile(self.music_path))
             )
             if autoplay:
                 self.music_player.play()
+
+    def handle_music_status(self, status):
+        if not self.music_player:
+            return
+
+        if status == QMediaPlayer.EndOfMedia:
+            self.music_player.setPosition(0)
+            self.music_player.play()
 
     def choose_music(self):
         path, selected_filter = QFileDialog.getOpenFileName(
