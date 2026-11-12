@@ -11,7 +11,8 @@ from PyQt5.QtCore import Qt, QTime
 from PyQt5.QtGui import QColor
 
 from database.database import get_connection
-from forms.letters import JalaliCalendarDialog, today_jalali
+from forms.letters import JalaliCalendarDialog, today_jalali, jalali_to_gregorian
+from windows_alarm import schedule_reminder_task, remove_reminder_task
 
 
 class RemindersForm(QWidget):
@@ -33,6 +34,7 @@ class RemindersForm(QWidget):
         self.init_ui()
         self.clear_form()
         self.load_reminders()
+        self.sync_pending_windows_alarms()
 
     def init_ui(self):
         root = QVBoxLayout(self)
@@ -134,6 +136,7 @@ class RemindersForm(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.load_reminders()
+        self.sync_pending_windows_alarms()
 
     def choose_date(self):
         dialog = JalaliCalendarDialog(self, self.txt_date.text())
@@ -184,6 +187,32 @@ class RemindersForm(QWidget):
                 for col in range(1, 6):
                     self.table.item(row_index, col).setForeground(QColor("#C0392B"))
         self.lbl_summary.setText("تعداد یادآوری‌های نمایش‌داده‌شده: {}".format(len(records)))
+
+    def sync_pending_windows_alarms(self):
+        """همگام‌سازی یادآوری‌های باز با Windows Task Scheduler."""
+        conn = get_connection()
+        try:
+            rows = conn.execute("""
+                SELECT ReminderID, ReminderDate, COALESCE(ReminderTime, '')
+                FROM Reminders
+                WHERE COALESCE(IsDone, 0) = 0
+                  AND COALESCE(NotifiedAt, '') = ''
+            """).fetchall()
+        finally:
+            conn.close()
+
+        for reminder_id, jalali_date, time_text in rows:
+            try:
+                parts = [int(x) for x in jalali_date.split("/")]
+                gy, gm, gd = jalali_to_gregorian(
+                    parts[0], parts[1], parts[2]
+                )
+                hh, mm = [int(x) for x in (time_text or "23:59").split(":")[:2]]
+                schedule_reminder_task(
+                    reminder_id, gy, gm, gd, hh, mm
+                )
+            except Exception as error:
+                print("Windows reminder sync error:", error)
 
     def get_due_status(self, jalali_date, time_text):
         try:
@@ -239,8 +268,9 @@ class RemindersForm(QWidget):
             parts = reminder_date.split("/")
             if len(parts) != 3:
                 raise ValueError()
-            from forms.letters import jalali_to_gregorian
-            jalali_to_gregorian(int(parts[0]), int(parts[1]), int(parts[2]))
+            gy, gm, gd = jalali_to_gregorian(
+                int(parts[0]), int(parts[1]), int(parts[2])
+            )
         except Exception:
             QMessageBox.warning(self, "تاریخ نامعتبر", "تاریخ یادآوری را با تقویم شمسی انتخاب کنید.")
             return
@@ -264,6 +294,25 @@ class RemindersForm(QWidget):
             return
         finally:
             conn.close()
+        try:
+            ok, alarm_message = schedule_reminder_task(
+                self.current_reminder_id,
+                gy, gm, gd,
+                self.time_edit.time().hour(),
+                self.time_edit.time().minute()
+            )
+            if not ok:
+                QMessageBox.warning(
+                    self, "هشدار ویندوز",
+                    "یادآوری ذخیره شد، اما زمان‌بندی هشدار ویندوز انجام نشد.\\n"
+                    + alarm_message
+                )
+        except Exception as alarm_error:
+            QMessageBox.warning(
+                self, "هشدار ویندوز",
+                "یادآوری ذخیره شد، اما ساخت هشدار ویندوز با خطا روبه‌رو شد.\\n"
+                + str(alarm_error)
+            )
         self.load_reminders()
         QMessageBox.information(self, "ذخیره شد", "یادآوری با موفقیت ذخیره شد.")
 
@@ -276,6 +325,7 @@ class RemindersForm(QWidget):
             cursor = conn.cursor()
             cursor.execute("UPDATE Reminders SET IsDone = 1 WHERE ReminderID = ?", (self.current_reminder_id,))
             conn.commit()
+            remove_reminder_task(self.current_reminder_id)
         finally:
             conn.close()
         self.clear_form()
@@ -293,6 +343,7 @@ class RemindersForm(QWidget):
             cursor = conn.cursor()
             cursor.execute("DELETE FROM Reminders WHERE ReminderID = ?", (self.current_reminder_id,))
             conn.commit()
+            remove_reminder_task(self.current_reminder_id)
         except Exception as exc:
             conn.rollback()
             QMessageBox.critical(self, "خطا در حذف", str(exc))
