@@ -327,17 +327,18 @@ class YasnaWindow(QMainWindow):
 
         self.menu_buttons = {}
         menu_items = [
-            ("dashboard", "⌂   داشبورد"),
-            ("letters", "✉   نامه‌های اداری"),
-            ("postal", "▣   مرسوله‌های پستی"),
-            ("persons", "♙   اشخاص و مخاطبان"),
-            ("reminders", "◷   یادآوری‌ها"),
-            ("reports", "▤   گزارش‌گیری"),
-            ("settings", "⚙   تنظیمات و کاربران"),
+            ("dashboard", "داشبورد   ⌂"),
+            ("letters", "نامه‌های اداری   ✉"),
+            ("postal", "مرسوله‌های پستی   ▣"),
+            ("persons", "اشخاص و مخاطبان   ♙"),
+            ("reminders", "یادآوری‌ها   ◷"),
+            ("reports", "گزارش‌گیری   ▤"),
+            ("settings", "تنظیمات و کاربران   ⚙"),
         ]
         for key, caption in menu_items:
             button = QPushButton(caption)
             button.setObjectName("navButton")
+            button.setLayoutDirection(Qt.RightToLeft)
             button.setCursor(Qt.PointingHandCursor)
             button.setMinimumHeight(43)
             button.clicked.connect(
@@ -347,12 +348,12 @@ class YasnaWindow(QMainWindow):
             self.menu_buttons[key] = button
 
         side.addStretch(1)
-        self.btn_choose_music = QPushButton("♫   انتخاب موسیقی")
+        self.btn_choose_music = QPushButton("انتخاب   ♫")
         self.btn_choose_music.setObjectName("musicButton")
         self.btn_choose_music.clicked.connect(self.choose_music)
         side.addWidget(self.btn_choose_music)
 
-        self.btn_music_toggle = QPushButton("▶   پخش موسیقی")
+        self.btn_music_toggle = QPushButton("پخش   ▶")
         self.btn_music_toggle.setObjectName("musicButton")
         self.btn_music_toggle.clicked.connect(self.toggle_music)
         side.addWidget(self.btn_music_toggle)
@@ -639,7 +640,7 @@ class YasnaWindow(QMainWindow):
                 QMediaContent(QUrl.fromLocalFile(self.music_path))
             )
             self.music_player.play()
-            self.btn_music_toggle.setText("توقف موسیقی")
+            self.btn_music_toggle.setText("توقف")
 
     def toggle_music(self):
         if not self.music_available:
@@ -658,7 +659,7 @@ class YasnaWindow(QMainWindow):
 
         if self.music_player.state() == QMediaPlayer.PlayingState:
             self.music_player.pause()
-            self.btn_music_toggle.setText("ادامه موسیقی")
+            self.btn_music_toggle.setText("ادامه")
         else:
             self.music_player.play()
             self.btn_music_toggle.setText("توقف موسیقی")
