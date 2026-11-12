@@ -259,7 +259,7 @@ class YasnaWindow(QMainWindow):
 
     def create_dashboard(self):
         image_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "Untitled.jpg"
+            os.path.dirname(os.path.abspath(__file__)), "main.jpg"
         )
         self.dashboard = DashboardCanvas(image_path)
 
