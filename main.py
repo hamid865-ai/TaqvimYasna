@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QTimer, QTime, QPointF, QUrl
 from PyQt5.QtGui import (
-    QFont, QPainter, QPen, QBrush, QColor, QPolygonF
+    QFont, QPainter, QPen, QBrush, QColor, QPolygonF, QPixmap
 )
 
 try:
@@ -154,6 +154,53 @@ class AnalogClock(QWidget):
         painter.end()
 
 
+
+class DashboardCanvas(QWidget):
+    """تصویر مرجع داشبورد با لایه‌های زنده و قابل تغییر."""
+    BASE_WIDTH = 1648
+    BASE_HEIGHT = 893
+
+    def __init__(self, image_path, parent=None):
+        super().__init__(parent)
+        self._pixmap = QPixmap(image_path)
+        if not self._pixmap.isNull():
+            # نوار عنوان پنجره از تصویر مرجع جدا می‌شود.
+            self._pixmap = self._pixmap.copy(
+                0, 34, self._pixmap.width(), self._pixmap.height() - 34
+            )
+        self._placements = []
+        self.setMinimumSize(1100, 700)
+
+    def place(self, widget, x, y, width, height):
+        widget.setParent(self)
+        self._placements.append((widget, x, y, width, height))
+        self._set_widget_geometry(widget, x, y, width, height)
+        widget.show()
+        return widget
+
+    def _set_widget_geometry(self, widget, x, y, width, height):
+        sx = float(self.width()) / self.BASE_WIDTH
+        sy = float(self.height()) / self.BASE_HEIGHT
+        widget.setGeometry(
+            int(x * sx), int(y * sy),
+            max(1, int(width * sx)), max(1, int(height * sy))
+        )
+
+    def resizeEvent(self, event):
+        QWidget.resizeEvent(self, event)
+        for widget, x, y, width, height in self._placements:
+            self._set_widget_geometry(widget, x, y, width, height)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        if not self._pixmap.isNull():
+            painter.drawPixmap(self.rect(), self._pixmap)
+        else:
+            painter.fillRect(self.rect(), QColor("#E9DDC5"))
+        painter.end()
+
+
 class YasnaWindow(QMainWindow):
     def __init__(self, user):
         super().__init__()
@@ -211,439 +258,186 @@ class YasnaWindow(QMainWindow):
         self.stack.addWidget(self.dashboard)
 
     def create_dashboard(self):
-        root = QHBoxLayout(self.dashboard)
-        root.setDirection(QHBoxLayout.LeftToRight)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
-
-        # منوی اصلی در سمت چپ، مطابق تصویر مرجع
-        sidebar = QFrame()
-        sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(238)
-        sidebar.setStyleSheet("""
-            QFrame#sidebar {
-                background:#142D4E;
-                border-right:1px solid #D8B66A;
-            }
-        """)
-        side = QVBoxLayout(sidebar)
-        side.setContentsMargins(13, 22, 13, 18)
-        side.setSpacing(7)
-
-        brand = QLabel("YASNA")
-        brand.setAlignment(Qt.AlignCenter)
-        brand.setStyleSheet(
-            "color:#E8CC8B;font-family:Georgia;font-size:29px;"
-            "font-weight:bold;letter-spacing:3px;padding:8px;"
+        image_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "Untitled.jpg"
         )
-        side.addWidget(brand)
+        self.dashboard = DashboardCanvas(image_path)
 
-        brand_fa = QLabel("سامانه جامع مکاتبات اداری")
-        brand_fa.setAlignment(Qt.AlignCenter)
-        brand_fa.setStyleSheet(
-            "color:#F1E8D6;font-size:11px;padding-bottom:14px;"
-        )
-        side.addWidget(brand_fa)
-
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("color:#52677D;")
-        side.addWidget(separator)
-        side.addSpacing(9)
-
-        menus = [
-            ("⌂     داشبورد", "dashboard"),
-            ("✉     نامه‌های اداری", "letters"),
-            ("▣     مرسوله‌های پستی", "postal"),
-            ("♙     اشخاص و مخاطبان", "persons"),
-            ("◷     یادآوری‌ها", "reminders"),
-            ("▤     گزارش‌گیری", "reports"),
-            ("⚙     تنظیمات و کاربران", "settings")
+        # لایه‌های زنده دقیقاً روی بخش‌های متناظر تصویر مرجع قرار می‌گیرند.
+        self.menu_buttons = {}
+        menu_areas = [
+            ("dashboard", 8, 244, 184, 66),
+            ("letters", 8, 319, 184, 65),
+            ("postal", 8, 385, 184, 64),
+            ("persons", 8, 450, 184, 65),
+            ("reminders", 8, 516, 184, 64),
+            ("reports", 8, 581, 184, 64),
+            ("settings", 8, 646, 184, 64),
         ]
-        for caption, key in menus:
-            button = QPushButton(caption)
+        for key, x, y, width, height in menu_areas:
+            button = QPushButton("", self.dashboard)
             button.setCursor(Qt.PointingHandCursor)
-            button.setMinimumHeight(45)
+            button.setToolTip({
+                "dashboard": "داشبورد",
+                "letters": "نامه‌های اداری",
+                "postal": "مرسوله‌های پستی",
+                "persons": "اشخاص و مخاطبان",
+                "reminders": "یادآوری‌ها",
+                "reports": "گزارش‌گیری",
+                "settings": "تنظیمات و کاربران"
+            }[key])
             button.setStyleSheet("""
                 QPushButton {
-                    color:#F5F1E8;
                     background:transparent;
                     border:1px solid transparent;
-                    border-radius:7px;
-                    text-align:right;
-                    padding-right:14px;
-                    font-family:Tahoma;
-                    font-size:12px;
+                    border-radius:8px;
                 }
                 QPushButton:hover {
-                    background:#294866;
-                    border:1px solid #9E895D;
-                    color:#F0D18A;
+                    background:rgba(226,190,111,35);
+                    border:1px solid rgba(232,202,139,190);
+                }
+                QPushButton:pressed {
+                    background:rgba(226,190,111,65);
                 }
             """)
             button.clicked.connect(
                 lambda checked=False, k=key: self.menu_clicked(k)
             )
+            self.dashboard.place(button, x, y, width, height)
             self.menu_buttons[key] = button
-            side.addWidget(button)
 
-        side.addStretch(1)
-        user_label = QLabel(
-            "{}\n{}".format(
-                self.current_user.get("FullName", ""),
-                self.current_user.get("Role", "")
-            )
-        )
-        user_label.setAlignment(Qt.AlignCenter)
-        user_label.setStyleSheet(
-            "color:#E8D7AF;font-size:10px;padding:11px;"
-            "border-top:1px solid #52677D;"
-        )
-        side.addWidget(user_label)
-
-        logout_button = QPushButton("خروج از سامانه")
-        logout_button.setMinimumHeight(37)
+        # خروج از سامانه روی دکمه خروج داخل تصویر مرجع
+        logout_button = QPushButton("", self.dashboard)
         logout_button.setCursor(Qt.PointingHandCursor)
+        logout_button.setToolTip("خروج از سامانه")
         logout_button.setStyleSheet("""
-            QPushButton {
-                color:white;background:#294866;
-                border:1px solid #A88D52;border-radius:7px;padding:7px;
-            }
-            QPushButton:hover { background:#934848; }
+            QPushButton { background:transparent;border:1px solid transparent;border-radius:8px; }
+            QPushButton:hover { background:rgba(220,90,75,35);border:1px solid rgba(220,90,75,170); }
         """)
         logout_button.clicked.connect(self.logout)
-        side.addWidget(logout_button)
+        self.dashboard.place(logout_button, 8, 752, 184, 66)
 
-        version = QLabel("YASNA DESKTOP  •  1.0")
-        version.setAlignment(Qt.AlignCenter)
-        version.setStyleSheet("color:#9EADBC;font-size:8px;padding-top:8px;")
-        side.addWidget(version)
-
-        # محتوای اصلی
-        content = QWidget()
-        content.setLayoutDirection(Qt.RightToLeft)
-        content.setStyleSheet(
-            "background-color:#F2EDE1;"
+        # سخن روز در قاب بالایی؛ متن و گوینده از بانک سخنان خوانده می‌شوند.
+        self.quote_top_source = QLabel("", self.dashboard)
+        self.quote_top_source.setAlignment(Qt.AlignCenter)
+        self.quote_top_source.setStyleSheet(
+            "background:transparent;color:#142D4E;font-size:15px;"
+            "font-weight:bold;border:0;"
         )
-        main_layout = QVBoxLayout(content)
-        main_layout.setContentsMargins(20, 16, 20, 18)
-        main_layout.setSpacing(13)
+        self.dashboard.place(self.quote_top_source, 590, 244, 700, 35)
 
-        # سربرگ فاخر: پرچم، نام یسنا و نمای تهران
-        header = QFrame()
-        header.setObjectName("referenceHeader")
-        header.setMinimumHeight(148)
-        header.setMaximumHeight(158)
-        header.setStyleSheet("""
-            QFrame#referenceHeader {
-                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,
-                    stop:0 #243F58, stop:0.52 #3E596D, stop:1 #8B7858);
-                border:2px solid #C5A45E;
-                border-radius:8px;
-            }
-        """)
-        header_layout = QHBoxLayout(header)
-        header_layout.setDirection(QHBoxLayout.LeftToRight)
-        header_layout.setContentsMargins(17, 10, 17, 10)
-        header_layout.setSpacing(12)
-
-        flag_box = QLabel("🇮🇷")
-        flag_box.setAlignment(Qt.AlignCenter)
-        flag_box.setFixedWidth(105)
-        flag_box.setStyleSheet(
-            "font-size:65px;background:transparent;border:0;"
+        self.quote_top_text = QLabel("", self.dashboard)
+        self.quote_top_text.setWordWrap(True)
+        self.quote_top_text.setAlignment(Qt.AlignCenter)
+        self.quote_top_text.setStyleSheet(
+            "background:transparent;color:#172B40;font-size:19px;"
+            "font-weight:bold;border:0;padding:2px;"
         )
-        header_layout.addWidget(flag_box, 0)
+        self.dashboard.place(self.quote_top_text, 600, 278, 690, 70)
 
-        heading_box = QVBoxLayout()
-        heading_box.setAlignment(Qt.AlignCenter)
-        heading_box.setSpacing(6)
-        heading_en = QLabel("YASNA")
-        heading_en.setAlignment(Qt.AlignCenter)
-        heading_en.setStyleSheet(
-            "color:#F3D58E;font-family:Georgia;font-size:30px;"
-            "font-weight:bold;letter-spacing:5px;"
-        )
-        heading_fa = QLabel("نرم افزار جامع مکاتبات و مدیریت اداری")
-        heading_fa.setAlignment(Qt.AlignCenter)
-        heading_fa.setStyleSheet(
-            "color:#FFF9ED;font-size:16px;font-weight:bold;"
-        )
-        heading_slogan = QLabel("سازمان شما، افتخار ماست")
-        heading_slogan.setAlignment(Qt.AlignCenter)
-        heading_slogan.setStyleSheet(
-            "color:#EAD7AD;font-size:11px;"
-        )
-        heading_box.addWidget(heading_en)
-        heading_box.addWidget(heading_fa)
-        heading_box.addWidget(heading_slogan)
-        header_layout.addLayout(heading_box, 1)
-
-        panorama_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "assets", "tehran_panorama.svg"
-        )
-        if SVG_AVAILABLE and os.path.isfile(panorama_path):
-            panorama = QSvgWidget(panorama_path)
-            panorama.setFixedSize(405, 116)
-            header_layout.addWidget(panorama, 0, Qt.AlignVCenter)
-        else:
-            panorama = QLabel("تهران  •  برج میلاد  •  رشته‌کوه البرز")
-            panorama.setAlignment(Qt.AlignCenter)
-            panorama.setStyleSheet("color:#F5E7C9;font-size:14px;")
-            header_layout.addWidget(panorama, 0)
-
-        main_layout.addWidget(header)
-
-        # ساعت عقربه‌ای در سمت چپ و پیام خوشامد در سمت راست
-        top_row = QHBoxLayout()
-        top_row.setDirection(QHBoxLayout.LeftToRight)
-        top_row.setSpacing(13)
-
-        clock_box = QFrame()
-        clock_box.setFixedWidth(242)
-        clock_box.setMinimumHeight(206)
-        clock_box.setStyleSheet("""
-            QFrame {
-                background:#FBF9F3;
-                border:1px solid #CDB77F;
-                border-radius:8px;
-            }
-        """)
-        clock_layout = QVBoxLayout(clock_box)
-        clock_layout.setContentsMargins(8, 8, 8, 8)
-        clock_layout.setAlignment(Qt.AlignCenter)
-        clock_title = QLabel("ساعت")
-        clock_title.setAlignment(Qt.AlignCenter)
-        clock_title.setStyleSheet(
-            "color:#142D4E;font-size:14px;font-weight:bold;"
-        )
-        clock_layout.addWidget(clock_title)
-        clock_layout.addWidget(AnalogClock(), 0, Qt.AlignCenter)
-        self.date_label = QLabel("")
+        # تاریخ شمسی و ساعت دیجیتال زیر ساعت عقربه‌ای تصویر.
+        self.date_label = QLabel("", self.dashboard)
         self.date_label.setAlignment(Qt.AlignCenter)
         self.date_label.setStyleSheet(
-            "color:#8C6C31;font-size:11px;font-weight:bold;"
+            "background:rgba(246,235,213,225);color:#142D4E;"
+            "font-size:12px;font-weight:bold;border:0;"
         )
-        clock_layout.addWidget(self.date_label)
+        self.dashboard.place(self.date_label, 225, 510, 310, 30)
 
-        welcome_box = QFrame()
-        welcome_box.setMinimumHeight(206)
-        welcome_box.setStyleSheet("""
-            QFrame {
-                background:#FBF9F3;
-                border:2px solid #CDB77F;
-                border-radius:8px;
-            }
-        """)
-        welcome_layout = QVBoxLayout(welcome_box)
-        welcome_layout.setContentsMargins(22, 17, 22, 15)
-        welcome_layout.setSpacing(9)
-
-        welcome_title = QLabel("به یسنا خوش آمدید")
-        welcome_title.setAlignment(Qt.AlignCenter)
-        welcome_title.setStyleSheet(
-            "color:#142D4E;font-size:21px;font-weight:bold;"
-        )
-        welcome_text = QLabel(
-            "نرم‌افزار جامع مکاتبات و مدیریت اداری\n"
-            "همه امور سازمانی شما، یکپارچه و منظم"
-        )
-        welcome_text.setAlignment(Qt.AlignCenter)
-        welcome_text.setWordWrap(True)
-        welcome_text.setStyleSheet(
-            "color:#5B6470;font-size:13px;line-height:1.5;"
-        )
-        self.digital_clock = QLabel("")
+        self.digital_clock = QLabel("", self.dashboard)
         self.digital_clock.setAlignment(Qt.AlignCenter)
         self.digital_clock.setStyleSheet(
-            "color:#A9853F;font-size:25px;font-weight:bold;"
+            "background:rgba(246,235,213,225);color:#9B7330;"
+            "font-size:13px;font-weight:bold;border:0;"
         )
-        welcome_layout.addWidget(welcome_title)
-        welcome_layout.addWidget(welcome_text)
-        welcome_layout.addStretch(1)
-        welcome_layout.addWidget(self.digital_clock)
+        self.dashboard.place(self.digital_clock, 270, 540, 220, 25)
 
-        # کنترل موسیقی برای حفظ امکان قبلی، در نوار کوچک پایین خوشامد
-        music_row = QHBoxLayout()
-        self.btn_choose_music = QPushButton("انتخاب آهنگ")
-        self.btn_music_toggle = QPushButton("پخش / توقف")
-        for music_button in (self.btn_choose_music, self.btn_music_toggle):
-            music_button.setCursor(Qt.PointingHandCursor)
-            music_button.setStyleSheet("""
-                QPushButton {
-                    background:#E6D7B5;color:#263D52;
-                    border:1px solid #B99A58;border-radius:5px;
-                    padding:5px 10px;font-size:10px;
-                }
-                QPushButton:hover { background:#D8B66A; }
-            """)
-            music_row.addWidget(music_button)
-        self.btn_choose_music.clicked.connect(self.choose_music)
-        self.btn_music_toggle.clicked.connect(self.toggle_music)
-        self.music_auto_checkbox = QCheckBox("پخش خودکار")
-        self.music_auto_checkbox.setChecked(True)
-        self.music_auto_checkbox.setStyleSheet("color:#5C513E;font-size:10px;")
-        self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
-        music_row.addWidget(self.music_auto_checkbox)
-        music_row.addStretch(1)
-        welcome_layout.addLayout(music_row)
-
-        top_row.addWidget(clock_box, 0)
-        top_row.addWidget(welcome_box, 1)
-        main_layout.addLayout(top_row)
-
-        # پنج کارت آماری
-        stats_heading = QLabel("گزارش سریع اطلاعات سامانه")
-        stats_heading.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        stats_heading.setStyleSheet(
-            "color:#142D4E;font-size:15px;font-weight:bold;padding:3px 5px;"
-        )
-        main_layout.addWidget(stats_heading)
-
-        stats_grid = QGridLayout()
-        stats_grid.setHorizontalSpacing(10)
-        stats_grid.setVerticalSpacing(8)
+        # اعداد پنج کارت آماری؛ عنوان‌ها و آیکون‌های تصویر مرجع دست‌نخورده‌اند.
         self.stat_labels = {}
-
-        stat_items = [
-            ("letters", "نامه‌های اداری", "✉"),
-            ("postal", "مرسوله‌های پستی", "▣"),
-            ("persons", "اشخاص", "♙"),
-            ("contacts", "مخاطبان", "♧"),
-            ("reminders", "یادآوری‌های فعال", "◷")
-        ]
-        for index, (key, caption_text, symbol) in enumerate(stat_items):
-            card = QFrame()
-            card.setMinimumHeight(112)
-            card.setStyleSheet("""
-                QFrame {
-                    background:#FBF9F3;
-                    border:1px solid #D8C99F;
-                    border-bottom:4px solid #C4A35C;
-                    border-radius:7px;
-                }
-            """)
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(7, 6, 7, 7)
-            card_layout.setSpacing(3)
-            symbol_label = QLabel(symbol)
-            symbol_label.setAlignment(Qt.AlignCenter)
-            symbol_label.setStyleSheet(
-                "color:#B18A43;font-size:22px;border:0;"
-            )
-            number = QLabel("۰")
+        stat_positions = {
+            "letters": (590, 477, 165, 43),
+            "postal": (800, 477, 170, 43),
+            "persons": (1010, 477, 170, 43),
+            "contacts": (1220, 477, 170, 43),
+            "reminders": (1430, 477, 165, 43),
+        }
+        for key, geometry in stat_positions.items():
+            number = QLabel("۰", self.dashboard)
             number.setAlignment(Qt.AlignCenter)
             number.setStyleSheet(
-                "color:#142D4E;font-size:25px;font-weight:bold;border:0;"
+                "background:rgba(255,250,242,235);color:#142D4E;"
+                "font-size:25px;font-weight:bold;border:0;"
             )
-            caption = QLabel(caption_text)
-            caption.setWordWrap(True)
-            caption.setAlignment(Qt.AlignCenter)
-            caption.setStyleSheet(
-                "color:#596574;font-size:10px;border:0;"
-            )
-            card_layout.addWidget(symbol_label)
-            card_layout.addWidget(number)
-            card_layout.addWidget(caption)
+            self.dashboard.place(number, *geometry)
             self.stat_labels[key] = number
-            stats_grid.addWidget(card, 0, index)
-            stats_grid.setColumnStretch(index, 1)
-        main_layout.addLayout(stats_grid)
 
-        # یادآوری‌های امروز و سخن بزرگان
-        bottom_row = QHBoxLayout()
-        bottom_row.setDirection(QHBoxLayout.LeftToRight)
-        bottom_row.setSpacing(13)
-
-        reminders_box = QFrame()
-        reminders_box.setMinimumHeight(190)
-        reminders_box.setStyleSheet("""
-            QFrame {
-                background:#FBF9F3;
-                border:1px solid #CDB77F;
-                border-radius:8px;
-            }
-        """)
-        reminders_layout = QVBoxLayout(reminders_box)
-        reminders_layout.setContentsMargins(15, 12, 15, 12)
-        reminders_layout.setSpacing(8)
-        reminders_heading = QLabel("◷   یادآوری‌های امروز")
-        reminders_heading.setStyleSheet(
-            "color:#142D4E;font-size:15px;font-weight:bold;"
-        )
-        self.today_reminders = QLabel("در حال دریافت اطلاعات...")
+        # فهرست واقعی یادآوری‌های امروز روی کادر سمت چپ پایین.
+        self.today_reminders = QLabel("", self.dashboard)
         self.today_reminders.setWordWrap(True)
         self.today_reminders.setAlignment(Qt.AlignTop | Qt.AlignRight)
         self.today_reminders.setStyleSheet(
-            "color:#4B5968;font-size:11px;padding:5px;"
+            "background:rgba(255,252,246,225);color:#142D4E;"
+            "font-size:12px;font-weight:bold;border:0;padding:8px;"
         )
-        reminders_layout.addWidget(reminders_heading)
-        reminders_layout.addWidget(self.today_reminders, 1)
+        self.dashboard.place(self.today_reminders, 228, 642, 515, 190)
 
-        quote_box = QFrame()
-        quote_box.setMinimumHeight(190)
-        quote_box.setStyleSheet("""
-            QFrame {
-                background:#F4EAD4;
-                border:2px solid #C5A45E;
-                border-radius:8px;
-            }
-        """)
-        quote_layout = QVBoxLayout(quote_box)
-        quote_layout.setContentsMargins(16, 12, 16, 12)
-        quote_layout.setSpacing(6)
-        quote_heading = QLabel("✦   سخن بزرگان")
-        quote_heading.setAlignment(Qt.AlignCenter)
-        quote_heading.setStyleSheet(
-            "color:#8A682F;font-size:15px;font-weight:bold;"
-        )
-        self.quote_text = QLabel("")
+        # سخن بزرگان در قاب تزئینی پایین سمت راست.
+        self.quote_text = QLabel("", self.dashboard)
         self.quote_text.setWordWrap(True)
         self.quote_text.setAlignment(Qt.AlignCenter)
         self.quote_text.setStyleSheet(
-            "color:#263B50;font-size:14px;font-weight:bold;padding:7px;"
+            "background:rgba(250,240,220,205);color:#172B40;"
+            "font-size:17px;font-weight:bold;border:0;padding:8px;"
         )
-        self.quote_meaning = QLabel("")
+        self.dashboard.place(self.quote_text, 820, 685, 690, 105)
+
+        self.quote_meaning = QLabel("", self.dashboard)
         self.quote_meaning.setWordWrap(True)
         self.quote_meaning.setAlignment(Qt.AlignCenter)
         self.quote_meaning.setStyleSheet(
-            "color:#5C6470;font-size:10px;"
+            "background:transparent;color:#5C5140;font-size:10px;border:0;"
         )
-        self.quote_source = QLabel("")
-        self.quote_source.setWordWrap(True)
-        self.quote_source.setAlignment(Qt.AlignCenter)
+        self.dashboard.place(self.quote_meaning, 850, 790, 620, 22)
+
+        self.quote_source = QLabel("", self.dashboard)
+        self.quote_source.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.quote_source.setStyleSheet(
-            "color:#98783E;font-size:10px;font-weight:bold;"
+            "background:transparent;color:#98733A;font-size:11px;"
+            "font-weight:bold;border:0;"
         )
-        quote_layout.addWidget(quote_heading)
-        quote_layout.addStretch(1)
-        quote_layout.addWidget(self.quote_text)
-        quote_layout.addWidget(self.quote_meaning)
-        quote_layout.addWidget(self.quote_source)
-        quote_layout.addStretch(1)
+        self.dashboard.place(self.quote_source, 815, 812, 650, 25)
 
-        bottom_row.addWidget(reminders_box, 1)
-        bottom_row.addWidget(quote_box, 1)
-        main_layout.addLayout(bottom_row)
-        main_layout.addStretch(1)
-
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.NoFrame)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(
-            "QScrollArea{background:#F2EDE1;border:0;}"
+        # کنترل موسیقی قبلی حفظ شده و در پایین نوار کناری قرار دارد.
+        self.btn_choose_music = QPushButton("♫", self.dashboard)
+        self.btn_choose_music.setToolTip("انتخاب موسیقی")
+        self.btn_choose_music.setCursor(Qt.PointingHandCursor)
+        self.btn_choose_music.setStyleSheet(
+            "background:rgba(22,49,76,220);color:#F2D99F;"
+            "border:1px solid #C5A45E;border-radius:5px;font-size:13px;"
         )
-        scroll_area.setWidget(content)
+        self.btn_choose_music.clicked.connect(self.choose_music)
+        self.dashboard.place(self.btn_choose_music, 18, 850, 45, 30)
 
-        # ترتیب افزودن کنترل‌ها تعیین می‌کند منو واقعاً در چپ قرار بگیرد.
-        root.addWidget(sidebar, 0)
-        root.addWidget(scroll_area, 1)
+        self.btn_music_toggle = QPushButton("▶", self.dashboard)
+        self.btn_music_toggle.setToolTip("پخش یا توقف موسیقی")
+        self.btn_music_toggle.setCursor(Qt.PointingHandCursor)
+        self.btn_music_toggle.setStyleSheet(
+            "background:rgba(22,49,76,220);color:#F2D99F;"
+            "border:1px solid #C5A45E;border-radius:5px;font-size:12px;"
+        )
+        self.btn_music_toggle.clicked.connect(self.toggle_music)
+        self.dashboard.place(self.btn_music_toggle, 68, 850, 45, 30)
 
-        self.update_clock()
+        self.music_auto_checkbox = QCheckBox("پخش خودکار", self.dashboard)
+        self.music_auto_checkbox.setChecked(True)
+        self.music_auto_checkbox.setStyleSheet(
+            "background:rgba(22,49,76,190);color:#F2D99F;font-size:9px;"
+        )
+        self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
+        self.dashboard.place(self.music_auto_checkbox, 116, 850, 78, 30)
+
         self.show_daily_quote()
+        self.update_clock()
 
     def update_clock(self):
         now = QTime.currentTime()
