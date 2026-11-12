@@ -149,6 +149,6 @@ QUOTES = _build_bank()
 
 def get_daily_quote():
     """هر روز یک مورد ثابت از بانک ۳۶۵تایی بر اساس روز سال برمی‌گرداند."""
-    index = date.today().timetuple().tm_yday - 1
+    index = (date.today().timetuple().tm_yday - 1) % 365
     quote, source, meaning = QUOTES[index]
     return quote, source, meaning
