@@ -117,7 +117,7 @@ class DashboardCanvas(QWidget):
     BASE_WIDTH = 1648
     BASE_HEIGHT = 893
 
-    def __init__(self, image_path=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self._placements = []
         self.setMinimumSize(1100, 700)
