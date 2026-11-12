@@ -304,13 +304,13 @@ class RemindersForm(QWidget):
             if not ok:
                 QMessageBox.warning(
                     self, "هشدار ویندوز",
-                    "یادآوری ذخیره شد، اما زمان‌بندی هشدار ویندوز انجام نشد.\\n"
+                    "یادآوری ذخیره شد، اما زمان‌بندی هشدار ویندوز انجام نشد.\n"
                     + alarm_message
                 )
         except Exception as alarm_error:
             QMessageBox.warning(
                 self, "هشدار ویندوز",
-                "یادآوری ذخیره شد، اما ساخت هشدار ویندوز با خطا روبه‌رو شد.\\n"
+                "یادآوری ذخیره شد، اما ساخت هشدار ویندوز با خطا روبه‌رو شد.\n"
                 + str(alarm_error)
             )
         self.load_reminders()
