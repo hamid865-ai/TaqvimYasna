@@ -253,7 +253,6 @@ class YasnaWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
 
-        self.dashboard = QWidget()
         self.create_dashboard()
         self.stack.addWidget(self.dashboard)
 
@@ -321,7 +320,7 @@ class YasnaWindow(QMainWindow):
         self.quote_top_source = QLabel("", self.dashboard)
         self.quote_top_source.setAlignment(Qt.AlignCenter)
         self.quote_top_source.setStyleSheet(
-            "background:transparent;color:#142D4E;font-size:15px;"
+            "background:rgba(250,240,220,238);color:#142D4E;font-size:15px;"
             "font-weight:bold;border:0;"
         )
         self.dashboard.place(self.quote_top_source, 590, 244, 700, 35)
@@ -330,7 +329,7 @@ class YasnaWindow(QMainWindow):
         self.quote_top_text.setWordWrap(True)
         self.quote_top_text.setAlignment(Qt.AlignCenter)
         self.quote_top_text.setStyleSheet(
-            "background:transparent;color:#172B40;font-size:19px;"
+            "background:rgba(250,240,220,238);color:#172B40;font-size:19px;"
             "font-weight:bold;border:0;padding:2px;"
         )
         self.dashboard.place(self.quote_top_text, 600, 278, 690, 70)
@@ -386,7 +385,7 @@ class YasnaWindow(QMainWindow):
         self.quote_text.setWordWrap(True)
         self.quote_text.setAlignment(Qt.AlignCenter)
         self.quote_text.setStyleSheet(
-            "background:rgba(250,240,220,205);color:#172B40;"
+            "background:rgba(250,240,220,242);color:#172B40;"
             "font-size:17px;font-weight:bold;border:0;padding:8px;"
         )
         self.dashboard.place(self.quote_text, 820, 685, 690, 105)
@@ -453,6 +452,8 @@ class YasnaWindow(QMainWindow):
         self.quote_text.setText("«%s»" % quote)
         self.quote_meaning.setText(meaning)
         self.quote_source.setText(source)
+        self.quote_top_text.setText("«%s»" % quote)
+        self.quote_top_source.setText(source)
 
     def read_app_setting(self, key, default=""):
         connection = None
@@ -570,8 +571,15 @@ class YasnaWindow(QMainWindow):
         self.update_clock()
 
         try:
+            weekday_names = {
+                "Saturday": "شنبه", "Sunday": "یکشنبه",
+                "Monday": "دوشنبه", "Tuesday": "سه‌شنبه",
+                "Wednesday": "چهارشنبه", "Thursday": "پنجشنبه",
+                "Friday": "جمعه"
+            }
+            weekday = __import__("datetime").datetime.now().strftime("%A")
             self.date_label.setText(
-                "امروز: " + today_jalali()
+                weekday_names.get(weekday, "") + "  |  " + today_jalali()
             )
         except Exception:
             self.date_label.setText("تاریخ شمسی")
