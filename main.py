@@ -5,6 +5,7 @@ import os
 import math
 import sqlite3
 import base64
+from windows_alarm import sync_pending_reminders
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
@@ -7771,6 +7772,7 @@ class YasnaWindow(QMainWindow):
 
 if __name__ == "__main__":
     initialize_database()
+    sync_pending_reminders()
 
     app = QApplication(sys.argv)
     app.setFont(QFont("Tahoma", 10))
