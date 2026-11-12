@@ -216,72 +216,78 @@ class YasnaWindow(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # نوار کناری ثابت در سمت راست
+        # منوی اصلی در سمت چپ، مطابق تصویر مرجع
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(235)
-        sidebar.setStyleSheet(
-            "QFrame#sidebar { background-color:%s; }" % NAVY
+        sidebar.setFixedWidth(238)
+        sidebar.setStyleSheet("""
+            QFrame#sidebar {
+                background:#142D4E;
+                border-right:1px solid #D8B66A;
+            }
+        """)
+        side = QVBoxLayout(sidebar)
+        side.setContentsMargins(13, 22, 13, 18)
+        side.setSpacing(7)
+
+        brand = QLabel("YASNA")
+        brand.setAlignment(Qt.AlignCenter)
+        brand.setStyleSheet(
+            "color:#E8CC8B;font-family:Georgia;font-size:29px;"
+            "font-weight:bold;letter-spacing:3px;padding:8px;"
         )
-        side_layout = QVBoxLayout(sidebar)
-        side_layout.setContentsMargins(16, 24, 16, 18)
-        side_layout.setSpacing(9)
+        side.addWidget(brand)
 
-        logo = QLabel("✦  YASNA")
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setStyleSheet(
-            "color:%s;font-size:27px;font-weight:bold;padding:12px;" % GOLD
+        brand_fa = QLabel("سامانه جامع مکاتبات اداری")
+        brand_fa.setAlignment(Qt.AlignCenter)
+        brand_fa.setStyleSheet(
+            "color:#F1E8D6;font-size:11px;padding-bottom:14px;"
         )
-        side_layout.addWidget(logo)
+        side.addWidget(brand_fa)
 
-        subtitle = QLabel("سیستم مدیریت مکاتبات اداری")
-        subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet("color:#DCE5ED;font-size:11px;padding-bottom:14px;")
-        side_layout.addWidget(subtitle)
-
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet("color:#38536D;")
-        side_layout.addWidget(line)
-        side_layout.addSpacing(10)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setStyleSheet("color:#52677D;")
+        side.addWidget(separator)
+        side.addSpacing(9)
 
         menus = [
-            ("⌂   داشبورد", "dashboard"),
-            ("✉   نامه‌های اداری", "letters"),
-            ("▣   نامه‌های پستی", "postal"),
-            ("♙   اشخاص و مخاطبان", "persons"),
-            ("◷   یادآوری‌ها", "reminders"),
-            ("▤   گزارش‌گیری", "reports"),
-            ("⚙   تنظیمات و کاربران", "settings")
+            ("⌂     داشبورد", "dashboard"),
+            ("✉     نامه‌های اداری", "letters"),
+            ("▣     مرسوله‌های پستی", "postal"),
+            ("♙     اشخاص و مخاطبان", "persons"),
+            ("◷     یادآوری‌ها", "reminders"),
+            ("▤     گزارش‌گیری", "reports"),
+            ("⚙     تنظیمات و کاربران", "settings")
         ]
-
-        for title, key in menus:
-            button = QPushButton(title)
+        for caption, key in menus:
+            button = QPushButton(caption)
             button.setCursor(Qt.PointingHandCursor)
-            button.setMinimumHeight(46)
+            button.setMinimumHeight(45)
             button.setStyleSheet("""
                 QPushButton {
-                    color:#F4F6F8;
+                    color:#F5F1E8;
                     background:transparent;
-                    border:0;
-                    border-radius:9px;
+                    border:1px solid transparent;
+                    border-radius:7px;
                     text-align:right;
-                    padding-right:15px;
-                    font-size:13px;
+                    padding-right:14px;
+                    font-family:Tahoma;
+                    font-size:12px;
                 }
                 QPushButton:hover {
-                    background:#294B6C;
-                    color:#D8B66A;
+                    background:#294866;
+                    border:1px solid #9E895D;
+                    color:#F0D18A;
                 }
             """)
             button.clicked.connect(
                 lambda checked=False, k=key: self.menu_clicked(k)
             )
             self.menu_buttons[key] = button
-            side_layout.addWidget(button)
+            side.addWidget(button)
 
-        side_layout.addStretch()
-
+        side.addStretch(1)
         user_label = QLabel(
             "{}\n{}".format(
                 self.current_user.get("FullName", ""),
@@ -290,68 +296,87 @@ class YasnaWindow(QMainWindow):
         )
         user_label.setAlignment(Qt.AlignCenter)
         user_label.setStyleSheet(
-            "color:#E8D7AF;font-size:10px;padding:10px;"
-            "border-top:1px solid #38536D;"
+            "color:#E8D7AF;font-size:10px;padding:11px;"
+            "border-top:1px solid #52677D;"
         )
-        side_layout.addWidget(user_label)
+        side.addWidget(user_label)
 
-        logout_button = QPushButton("خروج از حساب")
-        logout_button.setMinimumHeight(38)
+        logout_button = QPushButton("خروج از سامانه")
+        logout_button.setMinimumHeight(37)
         logout_button.setCursor(Qt.PointingHandCursor)
         logout_button.setStyleSheet("""
             QPushButton {
-                color:white;background:#294B6C;border:1px solid #526B82;
-                border-radius:8px;padding:6px;
+                color:white;background:#294866;
+                border:1px solid #A88D52;border-radius:7px;padding:7px;
             }
-            QPushButton:hover { background:#9B4545; }
+            QPushButton:hover { background:#934848; }
         """)
         logout_button.clicked.connect(self.logout)
-        side_layout.addWidget(logout_button)
+        side.addWidget(logout_button)
 
-        version = QLabel("Yasna Desktop  |  Version 1.0")
+        version = QLabel("YASNA DESKTOP  •  1.0")
         version.setAlignment(Qt.AlignCenter)
-        version.setStyleSheet("color:#9EAFBF;font-size:9px;padding-top:5px;")
-        side_layout.addWidget(version)
+        version.setStyleSheet("color:#9EADBC;font-size:8px;padding-top:8px;")
+        side.addWidget(version)
 
-        # محتوای اصلی داخل ناحیه اسکرول؛ بدون تحمیل عرض اضافی
+        # محتوای اصلی
         content = QWidget()
         content.setLayoutDirection(Qt.RightToLeft)
-        content.setStyleSheet("background-color:%s;" % CREAM)
+        content.setStyleSheet(
+            "background-color:#F2EDE1;"
+        )
         main_layout = QVBoxLayout(content)
-        main_layout.setContentsMargins(22, 20, 22, 22)
-        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(20, 16, 20, 18)
+        main_layout.setSpacing(13)
 
-        # سربرگ اصلی: عنوان، تصویر تهران و کنترل موسیقی
+        # سربرگ فاخر: پرچم، نام یسنا و نمای تهران
         header = QFrame()
-        header.setObjectName("dashboardHeader")
-        header.setMinimumHeight(142)
+        header.setObjectName("referenceHeader")
+        header.setMinimumHeight(148)
+        header.setMaximumHeight(158)
         header.setStyleSheet("""
-            QFrame#dashboardHeader {
-                background-color:#183B56;
-                border:1px solid #294F6C;
-                border-radius:15px;
+            QFrame#referenceHeader {
+                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,
+                    stop:0 #243F58, stop:0.52 #3E596D, stop:1 #8B7858);
+                border:2px solid #C5A45E;
+                border-radius:8px;
             }
         """)
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(20, 14, 20, 14)
-        header_layout.setSpacing(14)
+        header_layout.setContentsMargins(17, 10, 17, 10)
+        header_layout.setSpacing(12)
 
-        title_box = QVBoxLayout()
-        title_box.setSpacing(9)
-        title = QLabel("سامانه مدیریت مکاتبات یسنا")
-        title.setWordWrap(True)
-        title.setStyleSheet(
-            "color:white;font-size:20px;font-weight:bold;"
+        flag_box = QLabel("🇮🇷")
+        flag_box.setAlignment(Qt.AlignCenter)
+        flag_box.setFixedWidth(105)
+        flag_box.setStyleSheet(
+            "font-size:65px;background:transparent;border:0;"
         )
-        self.date_label = QLabel("")
-        self.date_label.setStyleSheet(
-            "color:#E8D7AF;font-size:12px;"
+        header_layout.addWidget(flag_box, 0)
+
+        heading_box = QVBoxLayout()
+        heading_box.setAlignment(Qt.AlignCenter)
+        heading_box.setSpacing(6)
+        heading_en = QLabel("YASNA")
+        heading_en.setAlignment(Qt.AlignCenter)
+        heading_en.setStyleSheet(
+            "color:#F3D58E;font-family:Georgia;font-size: thirtypx;"
+            "font-size:30px;font-weight:bold;letter-spacing:5px;"
         )
-        title_box.addWidget(title)
-        title_box.addWidget(self.date_label)
-        title_box.addStretch()
-        header_layout.addLayout(title_box, 2)
-        header_layout.addStretch(1)
+        heading_fa = QLabel("نرم افزار جامع مکاتبات و مدیریت اداری")
+        heading_fa.setAlignment(Qt.AlignCenter)
+        heading_fa.setStyleSheet(
+            "color:#FFF9ED;font-size:16px;font-weight:bold;"
+        )
+        heading_slogan = QLabel("سازمان شما، افتخار ماست")
+        heading_slogan.setAlignment(Qt.AlignCenter)
+        heading_slogan.setStyleSheet(
+            "color:#EAD7AD;font-size:11px;"
+        )
+        heading_box.addWidget(heading_en)
+        heading_box.addWidget(heading_fa)
+        heading_box.addWidget(heading_slogan)
+        header_layout.addLayout(heading_box, 1)
 
         panorama_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -359,206 +384,235 @@ class YasnaWindow(QMainWindow):
         )
         if SVG_AVAILABLE and os.path.isfile(panorama_path):
             panorama = QSvgWidget(panorama_path)
-            panorama.setFixedSize(390, 102)
+            panorama.setFixedSize(405, 116)
             header_layout.addWidget(panorama, 0, Qt.AlignVCenter)
         else:
-            panorama = QLabel("تهران  |  برج میلاد  |  البرز  🇮🇷")
+            panorama = QLabel("تهران  •  برج میلاد  •  رشته‌کوه البرز")
             panorama.setAlignment(Qt.AlignCenter)
-            panorama.setStyleSheet(
-                "color:#E8D7AF;font-size:15px;font-weight:bold;"
-            )
-            header_layout.addWidget(panorama, 0, Qt.AlignVCenter)
+            panorama.setStyleSheet("color:#F5E7C9;font-size:14px;")
+            header_layout.addWidget(panorama, 0)
 
-        music_controls = QVBoxLayout()
-        music_controls.setSpacing(6)
-        self.btn_choose_music = QPushButton("انتخاب آهنگ")
-        self.btn_choose_music.setCursor(Qt.PointingHandCursor)
-        self.btn_choose_music.setStyleSheet("""
-            QPushButton {
-                background:#D8B66A;color:#142D4E;border:0;
-                border-radius:7px;padding:7px 11px;font-weight:bold;
-            }
-            QPushButton:hover { background:#E8CC8B; }
-        """)
-        self.btn_choose_music.clicked.connect(self.choose_music)
-
-        self.btn_music_toggle = QPushButton("پخش / توقف")
-        self.btn_music_toggle.setCursor(Qt.PointingHandCursor)
-        self.btn_music_toggle.setStyleSheet("""
-            QPushButton {
-                background:#294B6C;color:white;border:1px solid #D8B66A;
-                border-radius:7px;padding:7px 11px;
-            }
-            QPushButton:hover { background:#365D80; }
-        """)
-        self.btn_music_toggle.clicked.connect(self.toggle_music)
-
-        self.music_auto_checkbox = QCheckBox("پخش خودکار")
-        self.music_auto_checkbox.setChecked(True)
-        self.music_auto_checkbox.setStyleSheet("color:white;font-size:10px;")
-        self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
-
-        music_controls.addWidget(self.btn_choose_music)
-        music_controls.addWidget(self.btn_music_toggle)
-        music_controls.addWidget(self.music_auto_checkbox)
-        header_layout.addLayout(music_controls, 0)
         main_layout.addWidget(header)
 
-        # خوشامدگویی و ساعت
+        # ساعت عقربه‌ای در سمت چپ و پیام خوشامد در سمت راست
         top_row = QHBoxLayout()
-        top_row.setSpacing(14)
+        top_row.setSpacing(13)
 
         clock_box = QFrame()
-        clock_box.setMinimumWidth(245)
-        clock_box.setMinimumHeight(210)
-        clock_box.setStyleSheet(
-            "QFrame{background:white;border-radius:14px;}"
-        )
+        clock_box.setFixedWidth(242)
+        clock_box.setMinimumHeight(206)
+        clock_box.setStyleSheet("""
+            QFrame {
+                background:#FBF9F3;
+                border:1px solid #CDB77F;
+                border-radius:8px;
+            }
+        """)
         clock_layout = QVBoxLayout(clock_box)
-        clock_layout.setContentsMargins(12, 10, 12, 10)
+        clock_layout.setContentsMargins(8, 8, 8, 8)
         clock_layout.setAlignment(Qt.AlignCenter)
-
         clock_title = QLabel("ساعت")
         clock_title.setAlignment(Qt.AlignCenter)
         clock_title.setStyleSheet(
-            "color:%s;font-size:14px;font-weight:bold;" % NAVY
+            "color:#142D4E;font-size:14px;font-weight:bold;"
         )
         clock_layout.addWidget(clock_title)
         clock_layout.addWidget(AnalogClock(), 0, Qt.AlignCenter)
+        self.date_label = QLabel("")
+        self.date_label.setAlignment(Qt.AlignCenter)
+        self.date_label.setStyleSheet(
+            "color:#8C6C31;font-size:11px;font-weight:bold;"
+        )
+        clock_layout.addWidget(self.date_label)
 
         welcome_box = QFrame()
-        welcome_box.setMinimumHeight(210)
-        welcome_box.setStyleSheet(
-            "QFrame{background:white;border-radius:14px;}"
-        )
+        welcome_box.setMinimumHeight(206)
+        welcome_box.setStyleSheet("""
+            QFrame {
+                background:#FBF9F3;
+                border:2px solid #CDB77F;
+                border-radius:8px;
+            }
+        """)
         welcome_layout = QVBoxLayout(welcome_box)
-        welcome_layout.setContentsMargins(24, 22, 24, 20)
-        welcome_layout.setSpacing(12)
+        welcome_layout.setContentsMargins(22, 17, 22, 15)
+        welcome_layout.setSpacing(9)
 
-        welcome = QLabel("خوش آمدید")
-        welcome.setStyleSheet(
-            "color:%s;font-size:25px;font-weight:bold;" % NAVY
+        welcome_title = QLabel("به یسنا خوش آمدید")
+        welcome_title.setAlignment(Qt.AlignCenter)
+        welcome_title.setStyleSheet(
+            "color:#142D4E;font-size:21px;font-weight:bold;"
         )
         welcome_text = QLabel(
-            "به فضای کاری یسنا خوش آمدید.\n"
-            "مدیریت نامه‌ها، مخاطبان و یادآوری‌ها در یک نگاه."
+            "نرم‌افزار جامع مکاتبات و مدیریت اداری\n"
+            "همه امور سازمانی شما، یکپارچه و منظم"
         )
+        welcome_text.setAlignment(Qt.AlignCenter)
         welcome_text.setWordWrap(True)
         welcome_text.setStyleSheet(
-            "color:%s;font-size:13px;line-height:1.5;" % MUTED
+            "color:#5B6470;font-size:13px;line-height:1.5;"
         )
         self.digital_clock = QLabel("")
+        self.digital_clock.setAlignment(Qt.AlignCenter)
         self.digital_clock.setStyleSheet(
-            "color:%s;font-size:25px;font-weight:bold;" % GOLD
+            "color:#A9853F;font-size:25px;font-weight:bold;"
         )
-        welcome_layout.addWidget(welcome)
+        welcome_layout.addWidget(welcome_title)
         welcome_layout.addWidget(welcome_text)
-        welcome_layout.addStretch()
+        welcome_layout.addStretch(1)
         welcome_layout.addWidget(self.digital_clock)
+
+        # کنترل موسیقی برای حفظ امکان قبلی، در نوار کوچک پایین خوشامد
+        music_row = QHBoxLayout()
+        self.btn_choose_music = QPushButton("انتخاب آهنگ")
+        self.btn_music_toggle = QPushButton("پخش / توقف")
+        for music_button in (self.btn_choose_music, self.btn_music_toggle):
+            music_button.setCursor(Qt.PointingHandCursor)
+            music_button.setStyleSheet("""
+                QPushButton {
+                    background:#E6D7B5;color:#263D52;
+                    border:1px solid #B99A58;border-radius:5px;
+                    padding:5px 10px;font-size:10px;
+                }
+                QPushButton:hover { background:#D8B66A; }
+            """)
+            music_row.addWidget(music_button)
+        self.btn_choose_music.clicked.connect(self.choose_music)
+        self.btn_music_toggle.clicked.connect(self.toggle_music)
+        self.music_auto_checkbox = QCheckBox("پخش خودکار")
+        self.music_auto_checkbox.setChecked(True)
+        self.music_auto_checkbox.setStyleSheet("color:#5C513E;font-size:10px;")
+        self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
+        music_row.addWidget(self.music_auto_checkbox)
+        music_row.addStretch(1)
+        welcome_layout.addLayout(music_row)
+
         top_row.addWidget(clock_box, 0)
         top_row.addWidget(welcome_box, 1)
         main_layout.addLayout(top_row)
 
-        # کارت‌های آماری هم‌اندازه
-        stats_title = QLabel("نمای کلی اطلاعات")
-        stats_title.setStyleSheet(
-            "color:%s;font-size:17px;font-weight:bold;padding:2px 3px;" % NAVY
+        # پنج کارت آماری
+        stats_heading = QLabel("گزارش سریع اطلاعات سامانه")
+        stats_heading.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        stats_heading.setStyleSheet(
+            "color:#142D4E;font-size:15px;font-weight:bold;padding:3px 5px;"
         )
-        main_layout.addWidget(stats_title)
+        main_layout.addWidget(stats_heading)
 
         stats_grid = QGridLayout()
-        stats_grid.setHorizontalSpacing(12)
-        stats_grid.setVerticalSpacing(12)
+        stats_grid.setHorizontalSpacing(10)
+        stats_grid.setVerticalSpacing(8)
+        stats_grid.setDirection(QGridLayout.RightToLeft)
         self.stat_labels = {}
 
         stat_items = [
             ("letters", "نامه‌های اداری", "✉"),
-            ("postal", "نامه‌های پستی", "▣"),
+            ("postal", "مرسوله‌های پستی", "▣"),
             ("persons", "اشخاص", "♙"),
-            ("contacts", "فرستندگان و گیرندگان", "♧"),
+            ("contacts", "مخاطبان", "♧"),
             ("reminders", "یادآوری‌های فعال", "◷")
         ]
-
         for index, (key, caption_text, symbol) in enumerate(stat_items):
             card = QFrame()
-            card.setMinimumHeight(125)
+            card.setMinimumHeight(112)
             card.setStyleSheet("""
                 QFrame {
-                    background:white;
-                    border:1px solid #E6E1D6;
-                    border-bottom:4px solid #D8B66A;
-                    border-radius:12px;
+                    background:#FBF9F3;
+                    border:1px solid #D8C99F;
+                    border-bottom:4px solid #C4A35C;
+                    border-radius:7px;
                 }
             """)
             card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(10, 9, 10, 10)
-            card_layout.setSpacing(5)
-
+            card_layout.setContentsMargins(7, 6, 7, 7)
+            card_layout.setSpacing(3)
             symbol_label = QLabel(symbol)
             symbol_label.setAlignment(Qt.AlignCenter)
             symbol_label.setStyleSheet(
-                "color:%s;font-size:21px;" % GOLD
+                "color:#B18A43;font-size:22px;border:0;"
             )
             number = QLabel("۰")
             number.setAlignment(Qt.AlignCenter)
             number.setStyleSheet(
-                "color:%s;font-size:26px;font-weight:bold;" % NAVY
+                "color:#142D4E;font-size:25px;font-weight:bold;border:0;"
             )
             caption = QLabel(caption_text)
             caption.setWordWrap(True)
             caption.setAlignment(Qt.AlignCenter)
             caption.setStyleSheet(
-                "color:%s;font-size:11px;" % MUTED
+                "color:#596574;font-size:10px;border:0;"
             )
-
             card_layout.addWidget(symbol_label)
             card_layout.addWidget(number)
             card_layout.addWidget(caption)
             self.stat_labels[key] = number
             stats_grid.addWidget(card, 0, index)
             stats_grid.setColumnStretch(index, 1)
-
         main_layout.addLayout(stats_grid)
 
-        # یادآوری‌ها و سخن روز
+        # یادآوری‌های امروز و سخن بزرگان
         bottom_row = QHBoxLayout()
-        bottom_row.setSpacing(14)
+        bottom_row.setSpacing(13)
+
+        reminders_box = QFrame()
+        reminders_box.setMinimumHeight(190)
+        reminders_box.setStyleSheet("""
+            QFrame {
+                background:#FBF9F3;
+                border:1px solid #CDB77F;
+                border-radius:8px;
+            }
+        """)
+        reminders_layout = QVBoxLayout(reminders_box)
+        reminders_layout.setContentsMargins(15, 12, 15, 12)
+        reminders_layout.setSpacing(8)
+        reminders_heading = QLabel("◷   یادآوری‌های امروز")
+        reminders_heading.setStyleSheet(
+            "color:#142D4E;font-size:15px;font-weight:bold;"
+        )
+        self.today_reminders = QLabel("در حال دریافت اطلاعات...")
+        self.today_reminders.setWordWrap(True)
+        self.today_reminders.setAlignment(Qt.AlignTop | Qt.AlignRight)
+        self.today_reminders.setStyleSheet(
+            "color:#4B5968;font-size:11px;padding:5px;"
+        )
+        reminders_layout.addWidget(reminders_heading)
+        reminders_layout.addWidget(self.today_reminders, 1)
 
         quote_box = QFrame()
-        quote_box.setMinimumHeight(205)
+        quote_box.setMinimumHeight(190)
         quote_box.setStyleSheet("""
             QFrame {
-                background:#183B56;
-                border:2px solid #D8B66A;
-                border-radius:14px;
+                background:#F4EAD4;
+                border:2px solid #C5A45E;
+                border-radius:8px;
             }
         """)
         quote_layout = QVBoxLayout(quote_box)
-        quote_layout.setContentsMargins(18, 14, 18, 14)
-        quote_layout.setSpacing(8)
-
-        quote_heading = QLabel("✦  سخن روز")
+        quote_layout.setContentsMargins(16, 12, 16, 12)
+        quote_layout.setSpacing(6)
+        quote_heading = QLabel("✦   سخن بزرگان")
         quote_heading.setAlignment(Qt.AlignCenter)
         quote_heading.setStyleSheet(
-            "color:%s;font-size:16px;font-weight:bold;" % GOLD
+            "color:#8A682F;font-size:15px;font-weight:bold;"
         )
         self.quote_text = QLabel("")
         self.quote_text.setWordWrap(True)
         self.quote_text.setAlignment(Qt.AlignCenter)
         self.quote_text.setStyleSheet(
-            "color:white;font-size:15px;padding:8px;"
+            "color:#263B50;font-size:14px;font-weight:bold;padding:7px;"
         )
         self.quote_meaning = QLabel("")
         self.quote_meaning.setWordWrap(True)
         self.quote_meaning.setAlignment(Qt.AlignCenter)
         self.quote_meaning.setStyleSheet(
-            "color:#F3EAD5;font-size:11px;padding:4px;"
+            "color:#5C6470;font-size:10px;"
         )
         self.quote_source = QLabel("")
         self.quote_source.setWordWrap(True)
         self.quote_source.setAlignment(Qt.AlignCenter)
         self.quote_source.setStyleSheet(
-            "color:#E8D7AF;font-size:10px;"
+            "color:#98783E;font-size:10px;font-weight:bold;"
         )
         quote_layout.addWidget(quote_heading)
         quote_layout.addStretch(1)
@@ -567,34 +621,9 @@ class YasnaWindow(QMainWindow):
         quote_layout.addWidget(self.quote_source)
         quote_layout.addStretch(1)
 
-        reminders_box = QFrame()
-        reminders_box.setMinimumHeight(205)
-        reminders_box.setStyleSheet(
-            "QFrame{background:white;border:1px solid #E6E1D6;"
-            "border-radius:14px;}"
-        )
-        reminders_layout = QVBoxLayout(reminders_box)
-        reminders_layout.setContentsMargins(18, 14, 18, 14)
-        reminders_layout.setSpacing(10)
-
-        reminders_heading = QLabel("یادآوری‌های امروز")
-        reminders_heading.setStyleSheet(
-            "color:%s;font-size:16px;font-weight:bold;" % NAVY
-        )
-        self.today_reminders = QLabel("در حال دریافت اطلاعات...")
-        self.today_reminders.setWordWrap(True)
-        self.today_reminders.setAlignment(Qt.AlignTop | Qt.AlignRight)
-        self.today_reminders.setStyleSheet(
-            "color:%s;font-size:12px;padding:6px;" % TEXT
-        )
-        reminders_layout.addWidget(reminders_heading)
-        reminders_layout.addWidget(self.today_reminders, 1)
-
-        bottom_row.addWidget(quote_box, 1)
         bottom_row.addWidget(reminders_box, 1)
+        bottom_row.addWidget(quote_box, 1)
         main_layout.addLayout(bottom_row)
-
-        # فضای انتهایی برای جلوگیری از فشرده‌شدن کارت‌ها
         main_layout.addStretch(1)
 
         scroll_area = QScrollArea()
@@ -603,13 +632,13 @@ class YasnaWindow(QMainWindow):
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setStyleSheet(
-            "QScrollArea{background:%s;border:0;}" % CREAM
+            "QScrollArea{background:#F2EDE1;border:0;}"
         )
         scroll_area.setWidget(content)
 
-        # محتوای اصلی در چپ و نوار کناری در راست
-        root.addWidget(scroll_area, 1)
+        # ترتیب افزودن کنترل‌ها تعیین می‌کند منو واقعاً در چپ قرار بگیرد.
         root.addWidget(sidebar, 0)
+        root.addWidget(scroll_area, 1)
 
         self.update_clock()
         self.show_daily_quote()
