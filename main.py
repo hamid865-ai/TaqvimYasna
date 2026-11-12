@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QGridLayout, QFrame,
     QStackedWidget, QMessageBox, QGraphicsDropShadowEffect,
-    QScrollArea, QFileDialog, QCheckBox
+    QScrollArea, QFileDialog, QCheckBox, QTableWidget,
+    QTableWidgetItem, QHeaderView
 )
 from PyQt5.QtCore import Qt, QTimer, QTime, QPointF, QUrl
 from PyQt5.QtGui import (
@@ -334,6 +335,10 @@ class YasnaWindow(QMainWindow):
         )
         self.dashboard.place(self.quote_top_text, 600, 278, 690, 70)
 
+        # ساعت عقربه‌ای زنده در مرکز قاب ساعت تصویر مرجع
+        self.analog_clock = AnalogClock(self.dashboard)
+        self.dashboard.place(self.analog_clock, 258, 260, 235, 235)
+
         # تاریخ شمسی و ساعت دیجیتال زیر ساعت عقربه‌ای تصویر.
         self.date_label = QLabel("", self.dashboard)
         self.date_label.setAlignment(Qt.AlignCenter)
@@ -370,15 +375,49 @@ class YasnaWindow(QMainWindow):
             self.dashboard.place(number, *geometry)
             self.stat_labels[key] = number
 
-        # فهرست واقعی یادآوری‌های امروز روی کادر سمت چپ پایین.
-        self.today_reminders = QLabel("", self.dashboard)
-        self.today_reminders.setWordWrap(True)
-        self.today_reminders.setAlignment(Qt.AlignTop | Qt.AlignRight)
-        self.today_reminders.setStyleSheet(
-            "background:rgba(255,252,246,225);color:#142D4E;"
-            "font-size:12px;font-weight:bold;border:0;padding:8px;"
+        # سربرگ و جدول یادآوری‌های امروز؛ ساعت، عنوان و وضعیت جداگانه
+        self.today_reminders_title = QLabel("📅  یادآوری‌های امروز  |  ۰ مورد", self.dashboard)
+        self.today_reminders_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.today_reminders_title.setStyleSheet(
+            "background:rgba(20,45,78,238);color:#F2D99F;"
+            "font-size:13px;font-weight:bold;border:1px solid #D8B66A;"
+            "border-radius:5px;padding:4px 10px;"
         )
-        self.dashboard.place(self.today_reminders, 228, 642, 515, 190)
+        self.dashboard.place(self.today_reminders_title, 228, 606, 515, 31)
+
+        self.today_reminders = QTableWidget(0, 3, self.dashboard)
+        self.today_reminders.setHorizontalHeaderLabels(["ساعت", "عنوان یادآوری", "وضعیت"])
+        self.today_reminders.setLayoutDirection(Qt.RightToLeft)
+        self.today_reminders.verticalHeader().setVisible(False)
+        self.today_reminders.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.today_reminders.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.today_reminders.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.today_reminders.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.today_reminders.setSelectionBehavior(QTableWidget.SelectRows)
+        self.today_reminders.setSelectionMode(QTableWidget.NoSelection)
+        self.today_reminders.setAlternatingRowColors(True)
+        self.today_reminders.setShowGrid(False)
+        self.today_reminders.setStyleSheet("""
+            QTableWidget {
+                background:rgba(255,252,246,242);
+                alternate-background-color:rgba(239,233,220,242);
+                color:#142D4E;
+                border:1px solid #D8B66A;
+                border-radius:5px;
+                gridline-color:#E6DCC8;
+                font-size:11px;
+            }
+            QHeaderView::section {
+                background:#1D4165;
+                color:#F7E7BE;
+                border:0;
+                border-bottom:1px solid #D8B66A;
+                padding:5px;
+                font-weight:bold;
+            }
+            QTableWidget::item { padding:5px; }
+        """)
+        self.dashboard.place(self.today_reminders, 228, 640, 515, 190)
 
         # سخن بزرگان در قاب تزئینی پایین سمت راست.
         self.quote_text = QLabel("", self.dashboard)
@@ -695,50 +734,69 @@ class YasnaWindow(QMainWindow):
 
     def load_today_reminders(self):
         connection = None
-
         try:
             connection = get_connection()
             cursor = connection.cursor()
-
             cursor.execute("""
                 SELECT ReminderTitle,
                        COALESCE(ReminderTime, ''),
-                       COALESCE(Description, '')
+                       COALESCE(IsDone, 0)
                 FROM Reminders
                 WHERE ReminderDate=?
-                  AND COALESCE(IsDone, 0)=0
                 ORDER BY ReminderTime, ReminderID
             """, (today_jalali(),))
-
             rows = cursor.fetchall()
 
-            if not rows:
-                self.today_reminders.setText(
-                    "برای امروز یادآوری ثبت نشده است."
+            self.today_reminders.setRowCount(0)
+            self.today_reminders_title.setText(
+                "📅  یادآوری‌های امروز  |  {} مورد".format(
+                    self.to_persian_digits(len(rows))
                 )
+            )
+            if not rows:
+                self.today_reminders.setRowCount(1)
+                item = QTableWidgetItem("برای امروز یادآوری ثبت نشده است.")
+                item.setTextAlignment(Qt.AlignCenter)
+                item.setForeground(QColor("#788596"))
+                self.today_reminders.setItem(0, 1, item)
+                self.today_reminders.setSpan(0, 0, 1, 3)
+                self.today_reminders.setRowHeight(0, 42)
                 return
 
-            lines = []
-            for title, reminder_time, description in rows[:5]:
-                time_text = reminder_time if reminder_time else "--:--"
-                lines.append(
-                    "◈  %s   |   %s" % (title, time_text)
+            self.today_reminders.clearSpans()
+            for row_index, (title, reminder_time, is_done) in enumerate(rows[:6]):
+                self.today_reminders.insertRow(row_index)
+                done = bool(is_done)
+                values = [
+                    "◷  " + (reminder_time or "--:--"),
+                    title or "بدون عنوان",
+                    "✓ انجام‌شده" if done else "● در انتظار"
+                ]
+                for col, value in enumerate(values):
+                    item = QTableWidgetItem(str(value))
+                    item.setTextAlignment(
+                        Qt.AlignCenter if col != 1
+                        else Qt.AlignRight | Qt.AlignVCenter
+                    )
+                    if done:
+                        item.setForeground(QColor("#718096"))
+                    elif col == 2:
+                        item.setForeground(QColor("#A87920"))
+                    self.today_reminders.setItem(row_index, col, item)
+                self.today_reminders.setRowHeight(row_index, 27)
+
+            if len(rows) > 6:
+                self.today_reminders_title.setText(
+                    "📅  یادآوری‌های امروز  |  {} مورد (۶ مورد اول)".format(
+                        self.to_persian_digits(len(rows))
+                    )
                 )
-
-            if len(rows) > 5:
-                lines.append(
-                    "و %s یادآوری دیگر..." %
-                    self.to_persian_digits(len(rows) - 5)
-                )
-
-            self.today_reminders.setText("\n\n".join(lines))
-
         except Exception as error:
-            self.today_reminders.setText(
-                "خطا در خواندن یادآوری‌ها."
-            )
+            self.today_reminders.setRowCount(1)
+            item = QTableWidgetItem("خطا در خواندن یادآوری‌ها")
+            item.setTextAlignment(Qt.AlignCenter)
+            self.today_reminders.setItem(0, 1, item)
             print("Dashboard reminders error:", error)
-
         finally:
             if connection:
                 connection.close()
