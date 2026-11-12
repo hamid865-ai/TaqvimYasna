@@ -69,7 +69,7 @@ guard_class_methods(
 
 # بانک ۳۶۵ سخن روز، حدیث و شعر فارسی
 try:
-    from data.daily_quotes import get_daily_quote
+    from data.daily_quotes import get_daily_quote, QUOTES
 except ImportError:
     def get_daily_quote():
         return (
@@ -488,11 +488,22 @@ class YasnaWindow(QMainWindow):
         else:
             quote, source = item
             meaning = ""
+
+        # قاب بالایی و پایینی دو متن متفاوت از بانک روزانه نشان می‌دهند.
+        top_quote, top_source = quote, source
+        try:
+            from datetime import date
+            index = date.today().timetuple().tm_yday % len(QUOTES)
+            next_item = QUOTES[index]
+            top_quote, top_source = next_item[0], next_item[1]
+        except Exception:
+            pass
+
         self.quote_text.setText("«%s»" % quote)
         self.quote_meaning.setText(meaning)
         self.quote_source.setText(source)
-        self.quote_top_text.setText("«%s»" % quote)
-        self.quote_top_source.setText(source)
+        self.quote_top_text.setText("«%s»" % top_quote)
+        self.quote_top_source.setText(top_source)
 
     def read_app_setting(self, key, default=""):
         connection = None
