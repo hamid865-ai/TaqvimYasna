@@ -343,6 +343,7 @@ class YasnaWindow(QMainWindow):
             }
         """)
         header_layout = QHBoxLayout(header)
+        header_layout.setDirection(QHBoxLayout.LeftToRight)
         header_layout.setContentsMargins(17, 10, 17, 10)
         header_layout.setSpacing(12)
 
@@ -360,8 +361,8 @@ class YasnaWindow(QMainWindow):
         heading_en = QLabel("YASNA")
         heading_en.setAlignment(Qt.AlignCenter)
         heading_en.setStyleSheet(
-            "color:#F3D58E;font-family:Georgia;font-size: thirtypx;"
-            "font-size:30px;font-weight:bold;letter-spacing:5px;"
+            "color:#F3D58E;font-family:Georgia;font-size:30px;"
+            "font-weight:bold;letter-spacing:5px;"
         )
         heading_fa = QLabel("نرم افزار جامع مکاتبات و مدیریت اداری")
         heading_fa.setAlignment(Qt.AlignCenter)
@@ -396,6 +397,7 @@ class YasnaWindow(QMainWindow):
 
         # ساعت عقربه‌ای در سمت چپ و پیام خوشامد در سمت راست
         top_row = QHBoxLayout()
+        top_row.setDirection(QHBoxLayout.LeftToRight)
         top_row.setSpacing(13)
 
         clock_box = QFrame()
@@ -502,7 +504,6 @@ class YasnaWindow(QMainWindow):
         stats_grid = QGridLayout()
         stats_grid.setHorizontalSpacing(10)
         stats_grid.setVerticalSpacing(8)
-        stats_grid.setDirection(QGridLayout.RightToLeft)
         self.stat_labels = {}
 
         stat_items = [
@@ -552,6 +553,7 @@ class YasnaWindow(QMainWindow):
 
         # یادآوری‌های امروز و سخن بزرگان
         bottom_row = QHBoxLayout()
+        bottom_row.setDirection(QHBoxLayout.LeftToRight)
         bottom_row.setSpacing(13)
 
         reminders_box = QFrame()
