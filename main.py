@@ -66,7 +66,7 @@ guard_class_methods(
     ["save_reminder", "mark_done", "delete_reminder"]
 )
 
-# فایل سخن روز را در مرحله بعد ایجاد می‌کنیم.
+# بانک ۳۶۵ سخن روز، حدیث و شعر فارسی
 try:
     from data.daily_quotes import get_daily_quote
 except ImportError:
@@ -531,6 +531,7 @@ class YasnaWindow(QMainWindow):
         quote_box.setStyleSheet("""
             QFrame {
                 background: #183B56;
+                border: 2px solid #D8B66A;
                 border-radius: 12px;
             }
         """)
@@ -568,8 +569,8 @@ class YasnaWindow(QMainWindow):
         quote_layout.addWidget(self.quote_source)
         quote_layout.addStretch()
 
-        bottom_row.addWidget(reminders_box, 1)
         bottom_row.addWidget(quote_box, 1)
+        bottom_row.addWidget(reminders_box, 1)
 
         main_layout.addLayout(bottom_row, 1)
 
