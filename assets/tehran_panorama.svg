@@ -1,40 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="260" viewBox="0 0 1000 260">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320">
 <defs>
- <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#244D70"/><stop offset="1" stop-color="#89A7B9"/></linearGradient>
- <linearGradient id="mount" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7E0E4"/><stop offset="1" stop-color="#73899B"/></linearGradient>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#163B5A"/><stop offset=".58" stop-color="#557D99"/><stop offset="1" stop-color="#D8B66A"/>
+ </linearGradient>
+ <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#F4F0E7"/><stop offset="1" stop-color="#AEBFC8"/>
+ </linearGradient>
+ <linearGradient id="city" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#D7C49A"/><stop offset="1" stop-color="#8C9BA0"/>
+ </linearGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
 </defs>
-<rect width="1000" height="260" rx="18" fill="url(#sky)"/>
-<circle cx="845" cy="55" r="27" fill="#F4DDA6" opacity=".85"/>
-<path d="M0 165 L70 95 125 137 205 63 278 143 350 82 430 145 515 67 605 142 690 82 775 143 865 78 1000 160 L1000 260 L0 260Z" fill="url(#mount)"/>
-<path d="M0 187 L85 143 155 176 250 125 340 182 430 132 530 181 625 128 720 184 830 130 920 178 1000 145 L1000 260 L0 260Z" fill="#526D7C" opacity=".65"/>
-<g fill="#E8E2D3" stroke="#F7E7C6" stroke-width="3">
- <path d="M478 226 L493 100 L507 100 L522 226Z"/>
- <path d="M485 113 L515 113 L520 124 L480 124Z"/>
- <path d="M488 91 L512 91 L518 105 L482 105Z"/>
- <path d="M494 72 L506 72 L511 92 L489 92Z"/>
- <path d="M498 44 L502 44 L504 73 L496 73Z"/>
- <path d="M496 44 L504 44 L502 37 L498 37Z"/>
+<rect width="1200" height="320" rx="22" fill="url(#sky)"/>
+<circle cx="1010" cy="72" r="37" fill="#F5DDA5" opacity=".9"/>
+<circle cx="1010" cy="72" r="57" fill="#F5DDA5" opacity=".18" filter="url(#soft)"/>
+<!-- distant Alborz range -->
+<path d="M0 205 L85 126 145 166 235 67 315 158 405 92 490 172 585 56 680 165 775 89 865 174 960 76 1050 163 1120 108 1200 178 L1200 320 L0 320Z" fill="url(#snow)"/>
+<path d="M0 220 L105 169 190 202 292 139 382 205 485 145 585 208 690 137 785 207 890 151 985 210 1080 155 1200 215 L1200 320 L0 320Z" fill="#718A99" opacity=".72"/>
+<path d="M0 246 Q190 211 360 246 T720 244 T1200 240 L1200 320 L0 320Z" fill="#344F61" opacity=".72"/>
+<!-- distant city silhouettes -->
+<g fill="#233F54" opacity=".72">
+ <path d="M0 254h48v-46h34v46h22v-68h42v68h24v-38h42v38h30v-58h46v58h30v-74h38v74h34v-48h48v48h25v-65h38v65h40v-42h50v42h30v-58h42v58h38v-75h40v75h32v-48h45v48h28v-66h42v66h35v-50h48v50h30v-68h38v68h32v-45h55v45h40v-58h48v58h35v-42h42v42h30v-64h48v64h30v-45h44v66H0z"/>
 </g>
-<g fill="#D5B77B" opacity=".95">
- <rect x="50" y="192" width="62" height="68"/><rect x="125" y="178" width="50" height="82"/>
- <rect x="188" y="201" width="76" height="59"/><rect x="278" y="185" width="55" height="75"/>
- <rect x="350" y="198" width="70" height="62"/><rect x="545" y="192" width="62" height="68"/>
- <rect x="625" y="177" width="58" height="83"/><rect x="700" y="194" width="78" height="66"/>
- <rect x="800" y="180" width="65" height="80"/><rect x="885" y="198" width="70" height="62"/>
+<!-- Milad tower -->
+<g fill="#F4EBDD" stroke="#FFF4DC" stroke-width="2">
+ <path d="M562 303 L586 130 L614 130 L638 303Z"/>
+ <path d="M576 169 L624 169 L636 184 L564 184Z"/>
+ <path d="M579 139 L621 139 L629 157 L571 157Z"/>
+ <path d="M586 119 L614 119 L623 139 L577 139Z"/>
+ <path d="M594 86 L606 86 L612 120 L588 120Z"/>
+ <path d="M597 62 L603 62 L606 87 L594 87Z"/>
+ <path d="M597 62 L603 62 L600 50Z"/>
 </g>
-<g fill="#F7EAD0" opacity=".75">
- <path d="M50 192h62v7H50zM125 178h50v7h-50zM188 201h76v7h-76zM278 185h55v7h-55zM350 198h70v7h-70zM545 192h62v7h-62zM625 177h58v7h-58zM700 194h78v7h-78zM800 180h65v7h-65zM885 198h70v7h-70z"/>
+<!-- Azadi-inspired arch silhouette -->
+<path d="M160 303 L174 239 Q220 189 266 239 L280 303 L257 303 L248 257 Q220 228 192 257 L183 303Z" fill="#E7D7B6" opacity=".9"/>
+<path d="M196 303 L203 265 Q220 247 237 265 L244 303" fill="none" stroke="#6B8795" stroke-width="5"/>
+<!-- foreground buildings with warm windows -->
+<g fill="url(#city)">
+ <path d="M0 270h85v50H0z M92 254h75v66H92z M177 272h95v48h-95z M286 250h78v70h-78z M373 269h85v51h-85z"/>
+ <path d="M748 268h82v52h-82z M840 247h92v73h-92z M942 269h83v51h-83z M1035 250h78v70h-78z M1120 270h80v50h-80z"/>
 </g>
-<g stroke="#F8E6BD" stroke-width="3">
- <path d="M66 210v10m15-10v10m15-10v10M140 198v10m15-10v10m-15 18v10m15-10v10M300 205v10m16-10v10M370 215v10m18-10v10M565 210v10m16-10v10M645 195v10m16-10v10M720 213v10m18-10v10M820 198v10m17-10v10M905 215v10m18-10v10"/>
+<g fill="#F6E6BE" opacity=".88">
+ <path d="M15 282h10v12H15zM38 282h10v12H38zM107 267h10v12h-10zM132 267h10v12h-10zM197 284h12v11h-12zM226 284h12v11h-12zM301 263h11v12h-11zM333 263h11v12h-11zM390 282h11v11h-11zM418 282h11v11h-11z"/>
+ <path d="M765 282h11v11h-11zM795 282h11v11h-11zM858 262h12v12h-12zM895 262h12v12h-12zM960 283h11v11h-11zM990 283h11v11h-11zM1053 265h11v12h-11zM1082 265h11v12h-11zM1140 282h11v11h-11zM1170 282h11v11h-11z"/>
 </g>
-<g transform="translate(24 22)">
- <rect width="104" height="58" rx="5" fill="#fff" opacity=".96"/>
- <path d="M5 5h94v16H5z" fill="#23965A"/>
- <path d="M5 37h94v16H5z" fill="#D83B43"/>
- <path d="M50 23l-8 6 8 6 8-6z" fill="#D83B43"/>
- <text x="52" y="33" text-anchor="middle" font-size="8" font-family="Tahoma" fill="#23965A">الله</text>
+<!-- Iranian flag -->
+<g transform="translate(35 28)">
+ <rect width="126" height="72" rx="7" fill="#FFFFFF" opacity=".97"/>
+ <path d="M5 5h116v20H5z" fill="#23965A"/>
+ <path d="M5 47h116v20H5z" fill="#D83B43"/>
+ <path d="M63 28l-9 8 9 8 9-8z" fill="#D83B43"/>
+ <text x="63" y="39" text-anchor="middle" font-size="10" font-family="Tahoma" fill="#23965A">الله</text>
 </g>
-<rect x="1.5" y="1.5" width="997" height="257" rx="17" fill="none" stroke="#D8B66A" stroke-width="3"/>
+<rect x="2" y="2" width="1196" height="316" rx="20" fill="none" stroke="#D8B66A" stroke-width="4"/>
 </svg>
