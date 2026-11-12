@@ -77,7 +77,7 @@ def schedule_reminder_task(reminder_id, year, month, day, hour, minute):
                 "/SD", task_date,
                 "/ST", task_time,
                 "/TR", command,
-                "/F", "/IT", "/Z"
+                "/F", "/IT"
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
