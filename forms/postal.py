@@ -22,6 +22,17 @@ QPushButton#secondary { background:#52677F; }
 QTableWidget { background:white; gridline-color:#E5E9EF;
  selection-background-color:#D8B66A; }
 QHeaderView::section { background:#142D4E; color:white; padding:7px; }
+QTabWidget::pane {
+ border:1px solid #DDE3EA; background:white; border-radius:7px;
+}
+QTabBar::tab {
+ background:#E8EDF3; color:#142D4E; padding:10px 18px;
+ margin-left:3px; border:0;
+}
+QTabBar::tab:selected {
+ background:#142D4E; color:white; font-weight:bold;
+}
+QTabBar::tab:hover:!selected { background:#DCE4ED; }
 """
 
 
@@ -359,6 +370,19 @@ class PostalForm(QWidget):
         self.signator_combo = QComboBox()
         self.description_edit = QTextEdit()
         self.description_edit.setMaximumHeight(55)
+
+        # متن و مقادیر انتخاب‌شده در تمام کادرهای این فرم راست‌چین باشند.
+        for edit in (self.number_edit, self.date_edit, self.tracking_edit):
+            edit.setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
+        self.description_edit.setLayoutDirection(Qt.RightToLeft)
+        self.description_edit.setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
+        for combo in (
+            self.sender_combo, self.receiver_combo,
+            self.subject_combo, self.signator_combo
+        ):
+            combo.setLayoutDirection(Qt.RightToLeft)
+            combo.view().setLayoutDirection(Qt.RightToLeft)
+
         for caption, widget in (
             ("شماره نامه", self.number_edit), ("تاریخ ثبت", date_widget),
             ("کد رهگیری / بارکد", self.tracking_edit), ("فرستنده", self.sender_combo),
@@ -444,11 +468,19 @@ class PostalForm(QWidget):
             for widget, table, id_col, name_col in definitions:
                 widget.clear()
                 widget.addItem("— انتخاب نشده —", None)
+                widget.setItemData(
+                    0, int(Qt.AlignRight | Qt.AlignVCenter), Qt.TextAlignmentRole
+                )
                 rows = connection.execute(
                     "SELECT {},{} FROM {} ORDER BY {}".format(id_col, name_col, table, name_col)
                 ).fetchall()
                 for row in rows:
                     widget.addItem(row[1], row[0])
+                    widget.setItemData(
+                        widget.count() - 1,
+                        int(Qt.AlignRight | Qt.AlignVCenter),
+                        Qt.TextAlignmentRole
+                    )
         finally:
             connection.close()
 
