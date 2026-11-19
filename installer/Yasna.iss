@@ -33,3 +33,22 @@ Name: "{autodesktop}\Yasna"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "اجرای Yasna"; Flags: postinstall nowait skipifsilent
+
+
+[Code]
+function InitializeUninstall(): Boolean;
+begin
+  Result := True;
+  if MsgBox(
+    'آیا می‌خواهید بانک اطلاعاتی یسنا هم حذف شود؟' + #13#10 +
+    'با انتخاب بله، تمام نامه‌ها، اشخاص، یادآوری‌ها و حساب‌های کاربری حذف می‌شوند.' + #13#10 +
+    'در نصب مجدد، صفحه تعریف مدیر سیستم دوباره نمایش داده خواهد شد.' + #13#10#13#10 +
+    'با انتخاب خیر، اطلاعات حفظ می‌شوند و مدیر قبلی باقی می‌ماند.',
+    mbConfirmation, MB_YESNO
+  ) = IDYES then
+  begin
+    DeleteFile(ExpandConstant('{app}\Yasna.db'));
+    DeleteFile(ExpandConstant('{app}\Yasna.db-wal'));
+    DeleteFile(ExpandConstant('{app}\Yasna.db-shm'));
+  end;
+end;
