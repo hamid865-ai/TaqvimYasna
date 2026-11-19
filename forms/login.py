@@ -38,6 +38,7 @@ class LoginDialog(QDialog):
         super().__init__(parent)
         self.user = None
         self.first_run = False
+        self.exit_requested = False
         self.setWindowTitle("ورود به سامانه یسنا")
         self.setFixedSize(440, 390)
         self.setLayoutDirection(Qt.RightToLeft)
@@ -94,12 +95,27 @@ class LoginDialog(QDialog):
         self.form_layout.addRow("رمز عبور:", self.password)
         root.addWidget(self.form_box)
 
+        buttons = QHBoxLayout()
+        self.btn_exit = QPushButton("خروج")
+        self.btn_exit.setStyleSheet(
+            "background:#7B3540; color:white; border:0; border-radius:6px;"
+            "padding:9px 16px; min-height:28px; font-family:Tahoma;"
+            "font-weight:bold;"
+        )
+        self.btn_exit.clicked.connect(self.request_exit)
+
         self.btn_login = QPushButton("ورود")
         self.btn_login.clicked.connect(self.login)
-        root.addWidget(self.btn_login)
+        buttons.addWidget(self.btn_exit)
+        buttons.addWidget(self.btn_login)
+        root.addLayout(buttons)
 
         self.password.returnPressed.connect(self.login)
         self.username.returnPressed.connect(self.password.setFocus)
+
+    def request_exit(self):
+        self.exit_requested = True
+        self.reject()
 
     def check_first_run(self):
         conn = get_connection()
