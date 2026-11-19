@@ -364,6 +364,24 @@ class YasnaWindow(QMainWindow):
         self.music_auto_checkbox.toggled.connect(self.save_music_autoplay)
         side.addWidget(self.music_auto_checkbox)
 
+        display_name = (
+            self.current_user.get("FullName")
+            or self.current_user.get("Username")
+            or "کاربر"
+        )
+        user_role = self.current_user.get("Role") or "بدون نقش"
+        self.user_info_label = QLabel(
+            "{}  |  {}".format(display_name, user_role)
+        )
+        self.user_info_label.setWordWrap(True)
+        self.user_info_label.setAlignment(Qt.AlignCenter)
+        self.user_info_label.setStyleSheet(
+            "color:#F2D99F; background:#1D4165; border:1px solid #45617D;"
+            "border-radius:8px; padding:9px 6px; font-size:10px;"
+            "font-weight:bold;"
+        )
+        side.addWidget(self.user_info_label)
+
         logout_button = QPushButton("خروج از حساب")
         logout_button.setObjectName("logoutButton")
         logout_button.setCursor(Qt.PointingHandCursor)
@@ -539,21 +557,12 @@ class YasnaWindow(QMainWindow):
             quote, source = item
             meaning = ""
 
-        # قاب بالایی و پایینی دو متن متفاوت از بانک روزانه نشان می‌دهند.
-        top_quote, top_source = quote, source
-        try:
-            from datetime import date
-            index = date.today().timetuple().tm_yday % len(QUOTES)
-            next_item = QUOTES[index]
-            top_quote, top_source = next_item[0], next_item[1]
-        except Exception:
-            pass
-
+        # هر دو بخش داشبورد، سخن همان روز را نمایش می‌دهند.
         self.quote_text.setText("«%s»" % quote)
         self.quote_meaning.setText(meaning)
         self.quote_source.setText(source)
-        self.quote_top_text.setText("«%s»" % top_quote)
-        self.quote_top_source.setText(top_source)
+        self.quote_top_text.setText("«%s»" % quote)
+        self.quote_top_source.setText(source)
 
     def read_app_setting(self, key, default=""):
         connection = None
@@ -669,6 +678,7 @@ class YasnaWindow(QMainWindow):
 
     def refresh_dashboard(self):
         self.update_clock()
+        self.show_daily_quote()
 
         try:
             weekday_names = {
@@ -1037,7 +1047,15 @@ class YasnaWindow(QMainWindow):
 
         self.hide()
         login = LoginDialog(self)
-        if login.exec_() == LoginDialog.Accepted and login.user:
+        login_result = login.exec_()
+
+        if login.exit_requested:
+            self._allow_close = True
+            self.close()
+            QApplication.quit()
+            return
+
+        if login_result == LoginDialog.Accepted and login.user:
             self.replacement_window = YasnaWindow(login.user)
             self.replacement_window.showMaximized()
             for timer_name in (
