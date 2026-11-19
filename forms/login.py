@@ -167,7 +167,11 @@ class LoginDialog(QDialog):
                 self, "ورود ناموفق",
                 "نام کاربری یا رمز عبور نادرست است، یا حساب غیرفعال شده است."
             )
+            # ورود ناموفق نباید دیالوگ را ببندد؛ فرم را فعال نگه می‌داریم.
             self.password.clear()
+            self.show()
+            self.raise_()
+            self.activateWindow()
             self.password.setFocus()
             return
 
