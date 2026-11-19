@@ -462,6 +462,13 @@ class ReceiverDialog(QDialog):
         self.btn_select_all = QPushButton("انتخاب همه")
         self.btn_clear = QPushButton("لغو انتخاب‌ها")
         self.btn_ok = QPushButton("تأیید")
+        self.btn_ok.setObjectName("ConfirmButton")
+        self.btn_ok.setStyleSheet(
+            "QPushButton#ConfirmButton { background:#D8B66A; color:#142D4E; "
+            "border:1px solid #C5A45E; border-radius:6px; "
+            "padding:7px 18px; font-weight:bold; }"
+            "QPushButton#ConfirmButton:hover { background:#E5C982; }"
+        )
         self.btn_cancel = QPushButton("انصراف")
 
         buttons.addWidget(self.btn_select_all)
