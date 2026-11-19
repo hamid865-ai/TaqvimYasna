@@ -143,6 +143,14 @@ def _build_bank():
     # تعداد نهایی دقیقاً ۳۶۵ مورد است؛ اگر بانک تغییر کرد، خطا آشکار می‌شود.
     if len(bank) != 365:
         raise ValueError("Daily quote bank must contain exactly 365 entries; found {}".format(len(bank)))
+
+    quote_texts = [item[0].strip() for item in bank]
+    if len(set(quote_texts)) != 365:
+        raise ValueError(
+            "Daily quote bank must contain 365 unique quotes; found {}".format(
+                len(set(quote_texts))
+            )
+        )
     return bank
 
 QUOTES = _build_bank()
