@@ -379,17 +379,39 @@ class YasnaWindow(QMainWindow):
             or "کاربر"
         )
         user_role = self.current_user.get("Role") or "بدون نقش"
-        self.user_info_label = QLabel(
-            "{}  |  {}".format(display_name, user_role)
+        user_info_panel = QFrame()
+        user_info_panel.setObjectName("userInfoPanel")
+        user_info_panel.setStyleSheet(
+            "QFrame#userInfoPanel { background:#1D4165; "
+            "border:1px solid #45617D; border-radius:8px; }"
         )
+        user_info_layout = QVBoxLayout(user_info_panel)
+        user_info_layout.setContentsMargins(7, 8, 7, 8)
+        user_info_layout.setSpacing(3)
+
+        self.user_info_label = QLabel(display_name)
+        self.user_info_label.setObjectName("userNameLabel")
         self.user_info_label.setWordWrap(True)
+        self.user_info_label.setTextFormat(Qt.PlainText)
         self.user_info_label.setAlignment(Qt.AlignCenter)
+        self.user_info_label.setToolTip(display_name)
         self.user_info_label.setStyleSheet(
-            "color:#F2D99F; background:#1D4165; border:1px solid #45617D;"
-            "border-radius:8px; padding:9px 6px; font-size:10px;"
-            "font-weight:bold;"
+            "color:#F2D99F; font-size:10px; font-weight:bold; "
+            "background:transparent; border:0;"
         )
-        side.addWidget(self.user_info_label)
+
+        self.user_role_label = QLabel(user_role)
+        self.user_role_label.setObjectName("userRoleLabel")
+        self.user_role_label.setWordWrap(True)
+        self.user_role_label.setTextFormat(Qt.PlainText)
+        self.user_role_label.setAlignment(Qt.AlignCenter)
+        self.user_role_label.setStyleSheet(
+            "color:#D5DFE9; font-size:9px; background:transparent; border:0;"
+        )
+
+        user_info_layout.addWidget(self.user_info_label)
+        user_info_layout.addWidget(self.user_role_label)
+        side.addWidget(user_info_panel)
 
         logout_button = QPushButton("خروج از حساب")
         logout_button.setObjectName("logoutButton")
