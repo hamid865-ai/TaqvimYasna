@@ -16,9 +16,19 @@ from PyQt5.QtWidgets import (
 )
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QTextCharFormat, QColor, QFont
+from PyQt5.QtGui import QTextCharFormat, QTextBlockFormat, QColor, QFont
 
 from database.database import get_connection
+
+
+def _set_editor_alignment(editor, alignment):
+    """Apply physical paragraph alignment (independent of RTL layout)."""
+    editor.setAlignment(alignment)
+    cursor = editor.textCursor()
+    block_format = cursor.blockFormat()
+    block_format.setAlignment(alignment)
+    cursor.setBlockFormat(block_format)
+    editor.setTextCursor(cursor)
 
 
 # =========================================================
@@ -994,7 +1004,9 @@ class LettersForm(QWidget):
         self.txt_body.setLayoutDirection(Qt.RightToLeft)
         self.txt_body.setFont(QFont("Tahoma", 12))
         self.txt_body.setMinimumHeight(240)
-        self.txt_body.setAlignment(Qt.AlignRight)
+        _set_editor_alignment(
+            self.txt_body, Qt.AlignRight | Qt.AlignAbsolute
+        )
         self.txt_body.setPlaceholderText(
             "متن نامه را اینجا وارد کنید..."
         )
@@ -1007,13 +1019,19 @@ class LettersForm(QWidget):
         self.btn_color.clicked.connect(self.change_text_color)
 
         self.btn_right.clicked.connect(
-            lambda: self.txt_body.setAlignment(Qt.AlignRight)
+            lambda: _set_editor_alignment(
+                self.txt_body, Qt.AlignRight | Qt.AlignAbsolute
+            )
         )
         self.btn_center.clicked.connect(
-            lambda: self.txt_body.setAlignment(Qt.AlignHCenter)
+            lambda: _set_editor_alignment(
+                self.txt_body, Qt.AlignHCenter | Qt.AlignAbsolute
+            )
         )
         self.btn_left.clicked.connect(
-            lambda: self.txt_body.setAlignment(Qt.AlignLeft)
+            lambda: _set_editor_alignment(
+                self.txt_body, Qt.AlignLeft | Qt.AlignAbsolute
+            )
         )
 
         editor_layout = QVBoxLayout()
@@ -2265,6 +2283,9 @@ class LettersForm(QWidget):
             self.set_combo_value(self.cbo_signator, record[3])
 
             self.txt_body.setHtml(record[4] or "")
+            _set_editor_alignment(
+                self.txt_body, Qt.AlignRight | Qt.AlignAbsolute
+            )
 
             cursor.execute("""
                 SELECT PersonID
@@ -2571,7 +2592,9 @@ class LettersForm(QWidget):
         self.font_combo.setCurrentFont(QFont("Tahoma", 12))
         self.font_size.setValue(12)
 
-        self.txt_body.setAlignment(Qt.AlignRight)
+        _set_editor_alignment(
+            self.txt_body, Qt.AlignRight | Qt.AlignAbsolute
+        )
 
         self.template_path = None
         self.template_is_personal = False
