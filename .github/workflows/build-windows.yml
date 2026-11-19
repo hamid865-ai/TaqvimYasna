@@ -27,12 +27,18 @@ jobs:
           python -m pip install --upgrade "pip<25"
           python -m pip install "PyQt5==5.15.10" "PyInstaller==5.13.2" "pywin32==306"
 
+      - name: Verify pywin32 imports
+        run: |
+          python -c "import win32com.client, pythoncom, pywintypes; print('PYWIN32 IMPORTS OK')"
+
       - name: Build standalone application
         shell: cmd
         run: >
           pyinstaller --noconfirm --clean --windowed --onedir
           --name Yasna
           --collect-all PyQt5
+          --collect-all win32com
+          --collect-all win32
           --hidden-import PyQt5.sip
           --hidden-import PyQt5.QtPrintSupport
           --hidden-import PyQt5.QtMultimedia
@@ -45,6 +51,22 @@ jobs:
           --collect-submodules win32com
           --collect-submodules win32
           main.py
+
+      - name: Include pywin32 runtime DLLs
+        shell: pwsh
+        run: |
+          $pythonRoot = python -c "import sys; print(sys.prefix)"
+          $dllFolder = Join-Path $pythonRoot "Lib\site-packages\pywin32_system32"
+          if (-not (Test-Path $dllFolder)) {
+            throw "pywin32 runtime DLL folder not found: $dllFolder"
+          }
+          $dlls = Get-ChildItem -Path $dllFolder -Filter "*.dll"
+          if ($dlls.Count -lt 2) {
+            throw "Expected pywin32 runtime DLLs were not found."
+          }
+          Copy-Item -Path (Join-Path $dllFolder "*.dll") -Destination "dist/Yasna" -Force
+          Write-Host "Copied pywin32 runtime DLLs:"
+          $dlls | ForEach-Object { Write-Host $_.Name }
 
       - name: Create portable ZIP
         shell: pwsh
