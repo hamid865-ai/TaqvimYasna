@@ -274,6 +274,13 @@ class YasnaWindow(QMainWindow):
             }
             QPushButton#navButton:hover { background:#24496D; color:#F2D99F; }
             QPushButton#navButton:pressed { background:#315A7E; }
+            QPushButton#navButton[active="true"] {
+                background:#D8B66A; color:#142D4E;
+                border:1px solid #F2D99F; font-weight:bold;
+            }
+            QPushButton#navButton[active="true"]:hover {
+                background:#E4C77F; color:#142D4E;
+            }
             QPushButton#logoutButton {
                 background:#7B3540; color:white; border:1px solid #A65A61;
                 border-radius:9px; padding:11px; font-weight:bold;
@@ -326,6 +333,7 @@ class YasnaWindow(QMainWindow):
         side.addSpacing(22)
 
         self.menu_buttons = {}
+        self.active_menu_key = "dashboard"
         menu_items = [
             ("dashboard", "داشبورد   ⌂"),
             ("letters", "نامه‌های اداری   ✉"),
@@ -347,6 +355,7 @@ class YasnaWindow(QMainWindow):
             side.addWidget(button)
             self.menu_buttons[key] = button
 
+        self.set_active_menu("dashboard")
         side.addStretch(1)
         self.btn_choose_music = QPushButton("انتخاب   ♫")
         self.btn_choose_music.setObjectName("musicButton")
@@ -889,6 +898,14 @@ class YasnaWindow(QMainWindow):
                 allowed = self.current_user.get("Role") == "مدیر سیستم"
             button.setVisible(allowed)
 
+    def set_active_menu(self, key):
+        self.active_menu_key = key
+        for menu_key, button in self.menu_buttons.items():
+            button.setProperty("active", menu_key == key)
+            button.style().unpolish(button)
+            button.style().polish(button)
+            button.update()
+
     def menu_clicked(self, key):
         if key != "dashboard" and not has_permission(self.current_user, key):
             show_denied(self, "برای ورود به این بخش دسترسی ندارید.")
@@ -896,6 +913,8 @@ class YasnaWindow(QMainWindow):
         if key == "settings" and self.current_user.get("Role") != "مدیر سیستم":
             show_denied(self, "مدیریت کاربران فقط در اختیار مدیر سیستم است.")
             return
+
+        self.set_active_menu(key)
 
         if key == "dashboard":
             self.show_dashboard()
@@ -1102,6 +1121,7 @@ class YasnaWindow(QMainWindow):
             self.setStyleSheet("")
 
     def show_dashboard(self):
+        self.set_active_menu("dashboard")
         self.stack.setCurrentWidget(self.dashboard)
         self.refresh_dashboard()
 
