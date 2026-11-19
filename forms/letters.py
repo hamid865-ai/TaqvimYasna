@@ -689,8 +689,8 @@ class LettersForm(QWidget):
                 background:white;
                 border:1px solid #CBD5DF;
                 border-radius:6px;
-                padding:5px 8px;
-                min-height:25px;
+                padding:2px 6px;
+                min-height:20px;
             }
 
             QTextEdit {
@@ -725,8 +725,8 @@ class LettersForm(QWidget):
                 color:white;
                 border:none;
                 border-radius:6px;
-                padding:6px 12px;
-                min-height:27px;
+                padding:3px 9px;
+                min-height:23px;
                 font-weight:bold;
             }
 
@@ -778,8 +778,8 @@ class LettersForm(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 10, 12, 10)
-        main_layout.setSpacing(7)
+        main_layout.setContentsMargins(10, 7, 10, 7)
+        main_layout.setSpacing(4)
 
         # عنوان و دکمه‌های ناوبری
 
@@ -850,11 +850,12 @@ class LettersForm(QWidget):
         # اطلاعات نامه
 
         info_layout = QGridLayout()
-        info_layout.setHorizontalSpacing(12)
-        info_layout.setVerticalSpacing(7)
+        info_layout.setHorizontalSpacing(8)
+        info_layout.setVerticalSpacing(3)
 
         self.txt_number = QLineEdit()
         self.txt_number.setReadOnly(True)
+        self.txt_number.setFixedHeight(27)
         self.chk_manual_number = QCheckBox("شماره‌گذاری دستی")
         self.chk_manual_number.toggled.connect(
             self.on_manual_number_toggled
@@ -867,9 +868,11 @@ class LettersForm(QWidget):
 
         self.txt_date = QLineEdit()
         self.txt_date.setReadOnly(True)
+        self.txt_date.setFixedHeight(27)
 
         self.btn_calendar = QPushButton("تقویم")
-        self.btn_calendar.setMaximumWidth(75)
+        self.btn_calendar.setMaximumWidth(68)
+        self.btn_calendar.setFixedHeight(27)
 
         date_layout = QHBoxLayout()
         date_layout.addWidget(self.txt_date)
@@ -880,6 +883,8 @@ class LettersForm(QWidget):
 
         self.cbo_subject = QComboBox()
         self.cbo_signator = QComboBox()
+        self.cbo_subject.setFixedHeight(27)
+        self.cbo_signator.setFixedHeight(27)
 
         info_layout.addWidget(QLabel("شماره نامه:"), 0, 0)
         info_layout.addWidget(number_widget, 0, 1)
@@ -904,12 +909,14 @@ class LettersForm(QWidget):
 
         self.txt_receivers = QLineEdit()
         self.txt_receivers.setReadOnly(True)
+        self.txt_receivers.setFixedHeight(27)
         self.txt_receivers.setPlaceholderText(
             "هنوز گیرنده‌ای انتخاب نشده است"
         )
 
         self.btn_receivers = QPushButton("انتخاب گیرندگان")
-        self.btn_receivers.setMaximumWidth(130)
+        self.btn_receivers.setMaximumWidth(120)
+        self.btn_receivers.setFixedHeight(27)
 
         self.lbl_receiver_count = QLabel("تعداد: ۰")
         self.lbl_receiver_count.setMinimumWidth(65)
@@ -927,15 +934,19 @@ class LettersForm(QWidget):
         # نوار ابزار متن
 
         toolbar_layout = QHBoxLayout()
+        toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        toolbar_layout.setSpacing(4)
 
         self.font_combo = QFontComboBox()
         self.font_combo.setCurrentFont(QFont("Tahoma", 12))
-        self.font_combo.setMaximumWidth(155)
+        self.font_combo.setMaximumWidth(145)
+        self.font_combo.setFixedHeight(25)
 
         self.font_size = QSpinBox()
         self.font_size.setRange(8, 72)
         self.font_size.setValue(12)
-        self.font_size.setMaximumWidth(65)
+        self.font_size.setMaximumWidth(58)
+        self.font_size.setFixedHeight(25)
 
         self.btn_bold = QPushButton("B")
         self.btn_bold.setCheckable(True)
@@ -956,6 +967,15 @@ class LettersForm(QWidget):
         self.btn_center = QPushButton("وسط‌چین")
         self.btn_left = QPushButton("چپ‌چین")
 
+        for toolbar_button in (
+            self.btn_bold, self.btn_italic, self.btn_underline,
+            self.btn_color, self.btn_right, self.btn_center, self.btn_left
+        ):
+            toolbar_button.setFixedHeight(25)
+            toolbar_button.setStyleSheet(
+                "padding:2px 7px; min-height:19px; max-height:25px;"
+            )
+
         for widget in (
             self.font_combo, self.font_size,
             self.btn_bold, self.btn_italic,
@@ -973,7 +993,8 @@ class LettersForm(QWidget):
         self.txt_body.setAcceptRichText(True)
         self.txt_body.setLayoutDirection(Qt.RightToLeft)
         self.txt_body.setFont(QFont("Tahoma", 12))
-        self.txt_body.setMinimumHeight(200)
+        self.txt_body.setMinimumHeight(240)
+        self.txt_body.setAlignment(Qt.AlignRight)
         self.txt_body.setPlaceholderText(
             "متن نامه را اینجا وارد کنید..."
         )
@@ -997,6 +1018,7 @@ class LettersForm(QWidget):
 
         editor_layout = QVBoxLayout()
         editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.setSpacing(3)
         editor_layout.addWidget(QLabel("متن نامه"))
         editor_layout.addWidget(toolbar_widget)
         editor_layout.addWidget(self.txt_body)
@@ -1004,14 +1026,14 @@ class LettersForm(QWidget):
         editor_widget = QWidget()
         editor_widget.setLayout(editor_layout)
 
-        main_layout.addWidget(editor_widget, 4)
+        main_layout.addWidget(editor_widget, 6)
 
         # پیوست‌ها
 
         attachment_layout = QHBoxLayout()
 
         self.lst_attachments = QListWidget()
-        self.lst_attachments.setMaximumHeight(55)
+        self.lst_attachments.setMaximumHeight(42)
 
         self.btn_add_attachment = QPushButton("افزودن پیوست")
         self.btn_remove_attachment = QPushButton("حذف پیوست")
@@ -1105,12 +1127,12 @@ class LettersForm(QWidget):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setAlternatingRowColors(True)
-        self.table.setMaximumHeight(180)
+        self.table.setMaximumHeight(140)
 
         self.table.itemSelectionChanged.connect(self.select_letter)
         self.table.itemDoubleClicked.connect(self.open_selected_letter)
 
-        main_layout.addWidget(self.table, 2)
+        main_layout.addWidget(self.table, 1)
 
     # -----------------------------------------------------
     # بازگشت و خروج
