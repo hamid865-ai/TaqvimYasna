@@ -463,6 +463,7 @@ class ReceiverDialog(QDialog):
         self.btn_clear = QPushButton("لغو انتخاب‌ها")
         self.btn_ok = QPushButton("تأیید")
         self.btn_ok.setObjectName("ConfirmButton")
+        self.btn_cancel = QPushButton("انصراف")
         self.btn_ok.setFixedHeight(34)
         self.btn_select_all.setFixedHeight(34)
         self.btn_clear.setFixedHeight(34)
@@ -473,7 +474,6 @@ class ReceiverDialog(QDialog):
             "padding:7px 18px; font-weight:bold; }"
             "QPushButton#ConfirmButton:hover { background:#E5C982; }"
         )
-        self.btn_cancel = QPushButton("انصراف")
 
         buttons.addWidget(self.btn_select_all)
         buttons.addWidget(self.btn_clear)
@@ -910,7 +910,9 @@ class LettersForm(QWidget):
         self.cbo_signator.setFixedHeight(27)
         for combo in (self.cbo_subject, self.cbo_signator):
             combo.setLayoutDirection(Qt.RightToLeft)
-            combo.setEditable(False)
+            combo.setEditable(True)
+            combo.lineEdit().setReadOnly(True)
+            combo.lineEdit().setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
             combo.view().setLayoutDirection(Qt.RightToLeft)
 
         info_layout.addWidget(QLabel("شماره نامه:"), 0, 0)
