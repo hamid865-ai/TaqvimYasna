@@ -156,6 +156,7 @@ class DirectoryTab(QWidget):
         )
         self.table.setColumnHidden(0, True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setFixedHeight(32)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         layout.addWidget(self.table)
@@ -354,13 +355,24 @@ class PostalForm(QWidget):
         self.date_edit.setReadOnly(True)
         self.date_edit.setPlaceholderText("تاریخ شمسی")
         self.date_button = QPushButton("انتخاب تاریخ")
-        self.date_button.setMaximumWidth(115)
+        self.date_button.setFixedSize(145, 44)
+        self.date_button.setCursor(Qt.PointingHandCursor)
+        self.date_button.setStyleSheet(
+            "QPushButton { background:#142D4E; color:white; border:1px solid #8FA2B8; "
+            "border-radius:6px; padding:5px 10px; font-weight:bold; }"
+            "QPushButton:hover { background:#1D4165; border-color:#D8B66A; }"
+            "QPushButton:pressed { background:#0F223B; }"
+        )
         self.date_button.clicked.connect(self.open_calendar)
         date_widget = QWidget()
+        date_widget.setMinimumHeight(50)
+        date_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         date_layout = QHBoxLayout(date_widget)
-        date_layout.setContentsMargins(0, 0, 0, 0)
+        date_layout.setContentsMargins(2, 2, 2, 2)
+        date_layout.setSpacing(8)
+        date_layout.setAlignment(Qt.AlignVCenter)
         date_layout.addWidget(self.date_edit, 1)
-        date_layout.addWidget(self.date_button)
+        date_layout.addWidget(self.date_button, 0, Qt.AlignVCenter)
         self.tracking_edit = QLineEdit()
         self.tracking_edit.setPlaceholderText("اسکن بارکد؛ با فشردن Enter جستجو می‌شود")
         self.tracking_edit.returnPressed.connect(self.barcode_enter)
@@ -380,6 +392,8 @@ class PostalForm(QWidget):
         ):
             widget.setMinimumHeight(38)
             widget.setMaximumHeight(38)
+
+        self.date_edit.setFixedHeight(44)
 
         # متن و مقادیر انتخاب‌شده در تمام کادرهای این فرم راست‌چین باشند.
         for edit in (self.number_edit, self.date_edit, self.tracking_edit):
