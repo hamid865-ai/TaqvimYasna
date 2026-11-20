@@ -1913,6 +1913,25 @@ class LettersForm(QWidget):
         receiver_text = "\r".join(receiver_names)
         signator_text = self.cbo_signator.currentText()
 
+        # دریافت سمت امضاکننده از جدول Signators
+        signator_id = self.cbo_signator.currentData()
+        signator_job = ""
+
+        if signator_id is not None:
+            conn = get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT COALESCE(SignatorJob, '')
+                    FROM Signators
+                    WHERE SignatorID = ?
+                """, (signator_id,))
+                signator_record = cursor.fetchone()
+                if signator_record:
+                    signator_job = signator_record[0] or ""
+            finally:
+                conn.close()
+
         body_html = self.txt_body.toHtml()
         body_plain = self.txt_body.toPlainText().strip()
 
@@ -1961,6 +1980,7 @@ class LettersForm(QWidget):
                 "LetterDate",
                 "Receiver",
                 "Signator",
+                "SignatorJob",
                 "LetterBody",
                 "Attachment"
             ]
@@ -1990,6 +2010,10 @@ class LettersForm(QWidget):
 
             self.replace_word_bookmark(
                 document, "Signator", signator_text
+            )
+
+            self.replace_word_bookmark(
+                document, "SignatorJob", signator_job
             )
 
             self.replace_word_bookmark(
