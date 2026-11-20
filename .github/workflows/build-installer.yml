@@ -80,7 +80,8 @@ jobs:
           [Tasks]
           Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
           [Files]
-          Source: "portable\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          Source: "portable\Yasna.db"; DestDir: "{app}"; Flags: onlyifdoesntexist
+          Source: "portable\*"; DestDir: "{app}"; Excludes: "Yasna.db"; Flags: ignoreversion recursesubdirs createallsubdirs
           [Icons]
           Name: "{autoprograms}\Yasna"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
           Name: "{autodesktop}\Yasna"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
