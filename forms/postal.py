@@ -26,11 +26,11 @@ QTabWidget::pane {
  border:1px solid #DDE3EA; background:white; border-radius:7px;
 }
 QTabBar::tab {
- background:#E8EDF3; color:#142D4E; padding:10px 18px;
- margin-left:3px; border:0;
+ background:#E8EDF3; color:#142D4E; padding:6px 12px;
+ margin-left:3px; border:0; font-size:9pt; font-weight:normal;
 }
 QTabBar::tab:selected {
- background:#142D4E; color:white; font-weight:bold;
+ background:#142D4E; color:white; font-weight:normal;
 }
 QTabBar::tab:hover:!selected { background:#DCE4ED; }
 """
@@ -369,7 +369,17 @@ class PostalForm(QWidget):
         self.subject_combo = QComboBox()
         self.signator_combo = QComboBox()
         self.description_edit = QTextEdit()
-        self.description_edit.setMaximumHeight(55)
+        self.description_edit.setMinimumHeight(66)
+        self.description_edit.setMaximumHeight(66)
+
+        # ارتفاع کادرها برای نمایش کامل متن؛ بدون تغییر بخش امضا و دکمه‌های پایین.
+        for widget in (
+            self.number_edit, self.date_edit, self.tracking_edit,
+            self.sender_combo, self.receiver_combo,
+            self.subject_combo, self.signator_combo
+        ):
+            widget.setMinimumHeight(38)
+            widget.setMaximumHeight(38)
 
         # متن و مقادیر انتخاب‌شده در تمام کادرهای این فرم راست‌چین باشند.
         for edit in (self.number_edit, self.date_edit, self.tracking_edit):
