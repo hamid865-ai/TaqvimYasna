@@ -454,10 +454,10 @@ class YasnaWindow(QMainWindow):
         self.date_label = QLabel("")
         self.date_label.setAlignment(Qt.AlignCenter)
         self.date_label.setMinimumWidth(132)
-        self.date_label.setMinimumHeight(38)
+        self.date_label.setFixedHeight(32)
         self.date_label.setStyleSheet(
             "background:rgba(255,255,255,225); color:#1D4165; border:1px solid #D8B66A;"
-            "border-radius:8px; padding:7px 12px; font-weight:bold;"
+            "border-radius:7px; padding:3px 10px; font-weight:bold;"
         )
         header.addWidget(self.date_label)
         content_layout.addWidget(header_panel)
