@@ -67,15 +67,14 @@ guard_class_methods(
     ["save_reminder", "mark_done", "delete_reminder"]
 )
 
-# بانک ۳۶۵ سخن روز، حدیث و شعر فارسی
+# دو بانک مستقل برای اندیشه روز و سخن بزرگان
 try:
-    from data.daily_quotes import get_daily_quote, QUOTES
+    from data.daily_quotes import get_daily_wisdom, get_daily_great_quote
 except ImportError:
-    def get_daily_quote():
-        return (
-            "هر روز فرصتی تازه برای بهتر ساختن زندگی است.",
-            "حکمت"
-        )
+    def get_daily_wisdom():
+        return ("هر روز فرصتی تازه برای بهتر ساختن زندگی است.", "اندیشه روز", "")
+    def get_daily_great_quote():
+        return ("دانایی، چراغ راه زندگی است.", "سخن بزرگان", "")
 
 
 NAVY = "#142D4E"
@@ -427,23 +426,41 @@ class YasnaWindow(QMainWindow):
         content_layout.setSpacing(13)
         root.addWidget(content, 1)
 
-        header = QHBoxLayout()
+        # سربرگ تصویری با برش بالایی Dash.jpg؛ بخش نوشته «سخن بزرگان» حذف می‌شود.
+        header_panel = QWidget()
+        header_panel.setFixedHeight(100)
+        header_panel.setMinimumWidth(700)
+        header_background = QLabel(header_panel)
+        dash_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Dash.jpg")
+        dash_pixmap = QPixmap(dash_path)
+        if not dash_pixmap.isNull():
+            cropped = dash_pixmap.copy(0, 0, dash_pixmap.width(), min(205, dash_pixmap.height()))
+            header_background.setPixmap(
+                cropped.scaled(1200, 100, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            )
+        header_background.setGeometry(0, 0, 1200, 100)
+        header_background.lower()
+        header = QHBoxLayout(header_panel)
+        header.setContentsMargins(16, 8, 16, 8)
         heading_box = QVBoxLayout()
         title = QLabel("داشبورد مدیریتی")
-        title.setStyleSheet("font-size:23px; font-weight:bold; color:#142D4E;")
+        title.setStyleSheet("font-size:21px; font-weight:bold; color:#142D4E; background:rgba(255,255,255,190); padding:2px 7px; border-radius:5px;")
         subtitle = QLabel("نمای کلی فعالیت‌ها و دسترسی سریع به بخش‌های یسنا")
-        subtitle.setObjectName("muted")
+        subtitle.setStyleSheet("font-size:10px; color:#24364B; background:rgba(255,255,255,190); padding:2px 7px; border-radius:4px;")
         heading_box.addWidget(title)
         heading_box.addWidget(subtitle)
         header.addLayout(heading_box)
         header.addStretch(1)
         self.date_label = QLabel("")
+        self.date_label.setAlignment(Qt.AlignCenter)
+        self.date_label.setMinimumWidth(132)
+        self.date_label.setMinimumHeight(38)
         self.date_label.setStyleSheet(
-            "background:#FFFFFF; color:#1D4165; border:1px solid #E2E7ED;"
-            "border-radius:9px; padding:10px 14px; font-weight:bold;"
+            "background:rgba(255,255,255,225); color:#1D4165; border:1px solid #D8B66A;"
+            "border-radius:8px; padding:7px 12px; font-weight:bold;"
         )
         header.addWidget(self.date_label)
-        content_layout.addLayout(header)
+        content_layout.addWidget(header_panel)
 
         # سخن روز
         quote_panel = QFrame()
@@ -581,19 +598,14 @@ class YasnaWindow(QMainWindow):
         self.digital_clock.setText(now.toString("HH:mm:ss"))
 
     def show_daily_quote(self):
-        item = get_daily_quote()
-        if len(item) >= 3:
-            quote, source, meaning = item[0], item[1], item[2]
-        else:
-            quote, source = item
-            meaning = ""
+        wisdom_text, wisdom_source, wisdom_meaning = get_daily_wisdom()
+        great_text, great_source, great_meaning = get_daily_great_quote()
 
-        # هر دو بخش داشبورد، سخن همان روز را نمایش می‌دهند.
-        self.quote_text.setText("«%s»" % quote)
-        self.quote_meaning.setText(meaning)
-        self.quote_source.setText(source)
-        self.quote_top_text.setText("«%s»" % quote)
-        self.quote_top_source.setText(source)
+        self.quote_top_text.setText("«%s»" % wisdom_text)
+        self.quote_top_source.setText(wisdom_source)
+        self.quote_text.setText("«%s»" % great_text)
+        self.quote_meaning.setText(great_meaning)
+        self.quote_source.setText(great_source)
 
     def read_app_setting(self, key, default=""):
         connection = None
