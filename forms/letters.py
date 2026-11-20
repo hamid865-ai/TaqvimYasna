@@ -463,6 +463,10 @@ class ReceiverDialog(QDialog):
         self.btn_clear = QPushButton("لغو انتخاب‌ها")
         self.btn_ok = QPushButton("تأیید")
         self.btn_ok.setObjectName("ConfirmButton")
+        self.btn_ok.setFixedHeight(34)
+        self.btn_select_all.setFixedHeight(34)
+        self.btn_clear.setFixedHeight(34)
+        self.btn_cancel.setFixedHeight(34)
         self.btn_ok.setStyleSheet(
             "QPushButton#ConfirmButton { background:#D8B66A; color:#142D4E; "
             "border:1px solid #C5A45E; border-radius:6px; "
@@ -873,6 +877,7 @@ class LettersForm(QWidget):
         self.txt_number = QLineEdit()
         self.txt_number.setReadOnly(True)
         self.txt_number.setFixedHeight(27)
+        self.txt_number.setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
         self.chk_manual_number = QCheckBox("شماره‌گذاری دستی")
         self.chk_manual_number.toggled.connect(
             self.on_manual_number_toggled
@@ -886,6 +891,7 @@ class LettersForm(QWidget):
         self.txt_date = QLineEdit()
         self.txt_date.setReadOnly(True)
         self.txt_date.setFixedHeight(27)
+        self.txt_date.setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
 
         self.btn_calendar = QPushButton("تقویم")
         self.btn_calendar.setMaximumWidth(68)
@@ -902,6 +908,10 @@ class LettersForm(QWidget):
         self.cbo_signator = QComboBox()
         self.cbo_subject.setFixedHeight(27)
         self.cbo_signator.setFixedHeight(27)
+        for combo in (self.cbo_subject, self.cbo_signator):
+            combo.setLayoutDirection(Qt.RightToLeft)
+            combo.setEditable(False)
+            combo.view().setLayoutDirection(Qt.RightToLeft)
 
         info_layout.addWidget(QLabel("شماره نامه:"), 0, 0)
         info_layout.addWidget(number_widget, 0, 1)
@@ -933,7 +943,7 @@ class LettersForm(QWidget):
 
         self.btn_receivers = QPushButton("انتخاب گیرندگان")
         self.btn_receivers.setMaximumWidth(120)
-        self.btn_receivers.setFixedHeight(27)
+        self.btn_receivers.setFixedHeight(34)
 
         self.lbl_receiver_count = QLabel("تعداد: ۰")
         self.lbl_receiver_count.setMinimumWidth(65)
