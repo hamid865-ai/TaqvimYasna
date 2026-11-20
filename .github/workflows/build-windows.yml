@@ -1,4 +1,4 @@
-name: Build Yasna for Windows 7 and later
+name: Build Yasna portable for Windows 7 and later
 
 on:
   workflow_dispatch:
@@ -8,6 +8,14 @@ on:
       - '**.py'
       - '.github/workflows/build-windows.yml'
       - 'installer/**'
+      - 'Icon.ico'
+      - 'Dash.jpg'
+      - 'Yasna.db'
+      - 'assets/**'
+      - 'data/**'
+      - 'database/**'
+      - 'forms/**'
+      - 'templates/**'
 
 jobs:
   build:
@@ -16,7 +24,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Python compatible with Windows 7
+      - name: Set up Python compatible with Windows 7 target
         uses: actions/setup-python@v5
         with:
           python-version: '3.8.10'
@@ -27,30 +35,49 @@ jobs:
           python -m pip install --upgrade "pip<25"
           python -m pip install "PyQt5==5.15.10" "PyInstaller==5.13.2" "pywin32==306"
 
-      - name: Verify pywin32 imports
+      - name: Verify required files
+        shell: pwsh
         run: |
-          python -c "import win32com.client, pythoncom, pywintypes; print('PYWIN32 IMPORTS OK')"
+          $required = @("main.py", "Icon.ico", "Dash.jpg", "Yasna.db")
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Required build file missing: $file" }
+          }
+
+      - name: Verify pywin32 imports
+        run: python -c "import win32com.client, pythoncom, pywintypes; print('PYWIN32 IMPORTS OK')"
 
       - name: Build standalone application
-        shell: cmd
-        run: >
-          pyinstaller --noconfirm --clean --windowed --onedir
-          --name Yasna
-          --collect-all PyQt5
-          --collect-all win32com
-          --collect-all win32
-          --hidden-import PyQt5.sip
-          --hidden-import PyQt5.QtPrintSupport
-          --hidden-import PyQt5.QtMultimedia
-          --hidden-import PyQt5.QtSvg
-          --hidden-import win32com
-          --hidden-import win32com.client
-          --hidden-import pythoncom
-          --hidden-import pywintypes
-          --hidden-import win32timezone
-          --collect-submodules win32com
-          --collect-submodules win32
-          main.py
+        shell: pwsh
+        run: |
+          $args = @(
+            "--noconfirm",
+            "--clean",
+            "--windowed",
+            "--onedir",
+            "--name", "Yasna",
+            "--icon", "Icon.ico",
+            "--collect-all", "PyQt5",
+            "--collect-all", "win32com",
+            "--collect-all", "win32",
+            "--hidden-import", "PyQt5.sip",
+            "--hidden-import", "PyQt5.QtPrintSupport",
+            "--hidden-import", "PyQt5.QtMultimedia",
+            "--hidden-import", "PyQt5.QtSvg",
+            "--hidden-import", "win32com.client",
+            "--hidden-import", "pythoncom",
+            "--hidden-import", "pywintypes",
+            "--hidden-import", "win32timezone",
+            "--collect-submodules", "win32com",
+            "--collect-submodules", "win32",
+            "--add-data", "Icon.ico;.",
+            "--add-data", "Dash.jpg;.",
+            "--add-data", "Yasna.db;.",
+            "--add-data", "Example.docx;.",
+            "--add-data", "assets;assets",
+            "main.py"
+          )
+          & pyinstaller @args
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 
       - name: Include pywin32 runtime DLLs
         shell: pwsh
@@ -65,26 +92,29 @@ jobs:
             throw "Expected pywin32 runtime DLLs were not found."
           }
           Copy-Item -Path (Join-Path $dllFolder "*.dll") -Destination "dist/Yasna" -Force
-          Write-Host "Copied pywin32 runtime DLLs:"
-          $dlls | ForEach-Object { Write-Host $_.Name }
+
+      - name: Verify executable and bundled resources
+        shell: pwsh
+        run: |
+          $required = @(
+            "dist/Yasna/Yasna.exe",
+            "dist/Yasna/Icon.ico",
+            "dist/Yasna/Dash.jpg",
+            "dist/Yasna/Yasna.db"
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Build output missing: $file" }
+          }
 
       - name: Create portable ZIP
         shell: pwsh
-        run: Compress-Archive -Path "dist/Yasna/*" -DestinationPath "dist/Yasna_Portable_Windows.zip" -Force
+        run: |
+          Compress-Archive -Path "dist/Yasna/*" -DestinationPath "dist/Yasna_Portable_Windows.zip" -Force
 
-      - name: Install Inno Setup
-        run: choco install innosetup --yes --no-progress
-
-      - name: Build installer
-        shell: cmd
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\Yasna.iss'
-
-      - name: Upload Windows packages
+      - name: Upload portable package
         uses: actions/upload-artifact@v4
         with:
-          name: Yasna-Windows-7-and-later
-          path: |
-            dist/Yasna_Portable_Windows.zip
-            dist/Yasna_Setup.exe
+          name: Yasna-Portable-Windows-Test
+          path: dist/Yasna_Portable_Windows.zip
           if-no-files-found: error
           retention-days: 30
