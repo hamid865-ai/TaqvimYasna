@@ -1,0 +1,91 @@
+name: Build Yasna Windows installer
+
+on:
+  workflow_run:
+    workflows: ["Build Yasna portable for Windows 7 and later"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build-installer:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: windows-2022
+    steps:
+      - name: Download portable build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Yasna-Portable-Windows-Test
+          path: downloaded
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Extract portable application
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem -Path downloaded -Filter *.zip | Select-Object -First 1
+          if (-not $zip) { throw "Portable ZIP artifact was not found." }
+          New-Item -ItemType Directory -Force -Path portable | Out-Null
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath portable -Force
+          if (-not (Test-Path "portable/Yasna.exe")) { throw "Yasna.exe missing." }
+          if (-not (Test-Path "portable/Icon.ico")) { throw "Icon.ico missing." }
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found." }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Create installer script
+        shell: pwsh
+        run: |
+          @'
+          #define MyAppName "Yasna"
+          #define MyAppVersion "1.0.0"
+          #define MyAppPublisher "Yasna"
+          #define MyAppExeName "Yasna.exe"
+          [Setup]
+          AppId={{B8F1E2D4-7A63-4C90-9F21-6D5A3B2C1E70}
+          AppName={#MyAppName}
+          AppVersion={#MyAppVersion}
+          AppPublisher={#MyAppPublisher}
+          DefaultDirName={autopf}\Yasna
+          DefaultGroupName=Yasna
+          DisableProgramGroupPage=yes
+          OutputDir=installer-output
+          OutputBaseFilename=Yasna_Setup_Windows
+          SetupIconFile=portable\Icon.ico
+          UninstallDisplayIcon={app}\Icon.ico
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64
+          ArchitecturesInstallIn64BitMode=x64
+          PrivilegesRequired=admin
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+          [Tasks]
+          Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+          [Files]
+          Source: "portable\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Yasna"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+          Name: "{autodesktop}\Yasna"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
+          [Run]
+          Filename: "{app}\{#MyAppExeName}"; Description: "Launch Yasna"; Flags: postinstall nowait skipifsilent
+          '@ | Set-Content -Path YasnaInstaller.iss -Encoding UTF8
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installer-output | Out-Null
+          & "$env:ISCC" YasnaInstaller.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+          if (-not (Test-Path "installer-output/Yasna_Setup_Windows.exe")) { throw "Installer EXE not created." }
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yasna-Installer-Windows-Test
+          path: installer-output/Yasna_Setup_Windows.exe
+          if-no-files-found: error
+          retention-days: 30
