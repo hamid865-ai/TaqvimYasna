@@ -355,7 +355,7 @@ class PostalForm(QWidget):
         self.date_edit.setReadOnly(True)
         self.date_edit.setPlaceholderText("تاریخ شمسی")
         self.date_button = QPushButton("انتخاب تاریخ")
-        self.date_button.setFixedSize(145, 44)
+        self.date_button.setFixedSize(125, 38)
         self.date_button.setCursor(Qt.PointingHandCursor)
         self.date_button.setStyleSheet(
             "QPushButton { background:#142D4E; color:white; border:1px solid #8FA2B8; "
@@ -365,11 +365,11 @@ class PostalForm(QWidget):
         )
         self.date_button.clicked.connect(self.open_calendar)
         date_widget = QWidget()
-        date_widget.setMinimumHeight(50)
+        date_widget.setMinimumHeight(42)
         date_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         date_layout = QHBoxLayout(date_widget)
-        date_layout.setContentsMargins(2, 2, 2, 2)
-        date_layout.setSpacing(8)
+        date_layout.setContentsMargins(1, 1, 1, 1)
+        date_layout.setSpacing(6)
         date_layout.setAlignment(Qt.AlignVCenter)
         date_layout.addWidget(self.date_edit, 1)
         date_layout.addWidget(self.date_button, 0, Qt.AlignVCenter)
@@ -393,7 +393,7 @@ class PostalForm(QWidget):
             widget.setMinimumHeight(38)
             widget.setMaximumHeight(38)
 
-        self.date_edit.setFixedHeight(44)
+        self.date_edit.setFixedHeight(38)
 
         # متن و مقادیر انتخاب‌شده در تمام کادرهای این فرم راست‌چین باشند.
         for edit in (self.number_edit, self.date_edit, self.tracking_edit):
