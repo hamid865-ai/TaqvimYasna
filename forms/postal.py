@@ -40,7 +40,7 @@ class SignatureCanvas(QWidget):
     """A simple mouse-based signature canvas; stores a PNG image in memory."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(460, 190)
+        self.setMinimumSize(460, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.image = QImage(900, 360, QImage.Format_ARGB32)
         self.image.fill(Qt.white)
@@ -368,9 +368,9 @@ class PostalForm(QWidget):
         self.receiver_combo = QComboBox()
         self.subject_combo = QComboBox()
         self.signator_combo = QComboBox()
-        self.description_edit = QTextEdit()
-        self.description_edit.setMinimumHeight(66)
-        self.description_edit.setMaximumHeight(66)
+        self.description_edit = QLineEdit()
+        self.description_edit.setMinimumHeight(38)
+        self.description_edit.setMaximumHeight(38)
 
         # ارتفاع کادرها برای نمایش کامل متن؛ بدون تغییر بخش امضا و دکمه‌های پایین.
         for widget in (
@@ -384,7 +384,6 @@ class PostalForm(QWidget):
         # متن و مقادیر انتخاب‌شده در تمام کادرهای این فرم راست‌چین باشند.
         for edit in (self.number_edit, self.date_edit, self.tracking_edit):
             edit.setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
-        self.description_edit.setLayoutDirection(Qt.RightToLeft)
         self.description_edit.setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
         for combo in (
             self.sender_combo, self.receiver_combo,
@@ -432,12 +431,12 @@ class PostalForm(QWidget):
     def _build_signature_group(self, title, party):
         from PyQt5.QtWidgets import QGroupBox
         group = QGroupBox("امضای " + title)
-        group.setStyleSheet("QGroupBox{font-weight:bold;border:1px solid #C8D1DC;border-radius:6px;margin-top:8px;padding:8px;} QGroupBox::title{subcontrol-origin:margin;right:20px;padding:0 5px;}")
+        group.setStyleSheet("QGroupBox{font-weight:bold;border:1px solid #C8D1DC;border-radius:6px;margin-top:8px;padding:8px;} QGroupBox::title{subcontrol-origin:margin;right:0px;padding:0 5px;}")
         layout = QVBoxLayout(group)
         preview = QLabel("هنوز امضایی ثبت نشده است")
         preview.setAlignment(Qt.AlignCenter)
-        preview.setMinimumHeight(75)
-        preview.setMaximumHeight(95)
+        preview.setMinimumHeight(100)
+        preview.setMaximumHeight(120)
         preview.setStyleSheet("background:white;border:1px dashed #AAB5C2;color:#78889A;")
         layout.addWidget(preview)
         method_label = QLabel("روش ثبت: —")
@@ -576,7 +575,7 @@ class PostalForm(QWidget):
         ):
             index = widget.findData(value)
             widget.setCurrentIndex(index if index >= 0 else 0)
-        self.description_edit.setPlainText(record[7] or "")
+        self.description_edit.setText(record[7] or "")
         self.sender_signature_data = None
         self.receiver_signature_data = None
         self.sender_signature_method = None
@@ -608,7 +607,7 @@ class PostalForm(QWidget):
             preview = self.receiver_preview
             method_label = self.receiver_method_label
         if not pixmap.isNull():
-            preview.setPixmap(pixmap.scaled(420, 82, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            preview.setPixmap(pixmap.scaled(420, 105, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             preview.setText("")
         else:
             preview.setPixmap(QPixmap())
@@ -714,7 +713,7 @@ class PostalForm(QWidget):
             self.number_edit.text().strip(), self.date_edit.text().strip(), code,
             self.sender_combo.currentData(), self.receiver_combo.currentData(),
             self.subject_combo.currentData(), self.signator_combo.currentData(),
-            self.description_edit.toPlainText().strip(),
+            self.description_edit.text().strip(),
             self.receiver_combo.currentText() if self.receiver_combo.currentData() else ""
         )
         if not values[0] and not code:
