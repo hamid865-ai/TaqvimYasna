@@ -1415,6 +1415,20 @@ class LettersForm(QWidget):
         receiver_text = "\r".join(receiver_names)
 
         signator_text = self.cbo_signator.currentText()
+        signator_job_text = ""
+        signator_id = self.cbo_signator.currentData()
+
+        if signator_id is not None:
+            conn = get_connection()
+            try:
+                record = conn.execute(
+                    "SELECT SignatorJob FROM Signators WHERE SignatorID = ?",
+                    (signator_id,)
+                ).fetchone()
+                if record and record[0]:
+                    signator_job_text = str(record[0]).strip()
+            finally:
+                conn.close()
 
         body_html = self.txt_body.toHtml()
         body_plain = self.txt_body.toPlainText().strip()
@@ -1487,6 +1501,25 @@ class LettersForm(QWidget):
 
             self.replace_word_bookmark(
                 document, "Signator", signator_text
+            )
+
+            # درج سمت امضاکننده در خط بعد از نام و ایجاد Bookmark مستقل
+            signator_range = document.Bookmarks("Signator").Range
+            signator_insert_position = signator_range.End
+            signator_job_range = document.Range(
+                signator_insert_position,
+                signator_insert_position
+            )
+            signator_job_range.InsertAfter("\r" + signator_job_text)
+
+            if document.Bookmarks.Exists("SignatorJob"):
+                document.Bookmarks("SignatorJob").Delete()
+
+            signator_job_start = signator_insert_position + 1
+            signator_job_end = signator_job_start + len(signator_job_text)
+            document.Bookmarks.Add(
+                "SignatorJob",
+                document.Range(signator_job_start, signator_job_end)
             )
 
             self.replace_word_bookmark(
