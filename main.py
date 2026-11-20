@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QTimer, QTime, QPointF, QUrl
 from PyQt5.QtGui import (
-    QFont, QPainter, QPen, QBrush, QColor, QPolygonF, QPixmap
+    QFont, QPainter, QPen, QBrush, QColor, QPolygonF, QPixmap, QIcon
 )
 
 try:
@@ -213,6 +213,9 @@ class YasnaWindow(QMainWindow):
         self.music_available = MEDIA_AVAILABLE
 
         self.setWindowTitle("Yasna | سیستم مدیریت مکاتبات اداری")
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Icon.ico")
+        if os.path.isfile(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         self.setMinimumSize(1100, 700)
         self.setLayoutDirection(Qt.RightToLeft)
 
