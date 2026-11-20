@@ -391,6 +391,9 @@ class PostalForm(QWidget):
             self.subject_combo, self.signator_combo
         ):
             combo.setLayoutDirection(Qt.RightToLeft)
+            combo.setEditable(True)
+            combo.lineEdit().setReadOnly(True)
+            combo.lineEdit().setAlignment(Qt.AlignRight | Qt.AlignAbsolute)
             combo.view().setLayoutDirection(Qt.RightToLeft)
 
         for caption, widget in (
@@ -429,7 +432,7 @@ class PostalForm(QWidget):
     def _build_signature_group(self, title, party):
         from PyQt5.QtWidgets import QGroupBox
         group = QGroupBox("امضای " + title)
-        group.setStyleSheet("QGroupBox{font-weight:bold;border:1px solid #C8D1DC;border-radius:6px;margin-top:8px;padding:8px;} QGroupBox::title{subcontrol-origin:margin;right:10px;padding:0 5px;}")
+        group.setStyleSheet("QGroupBox{font-weight:bold;border:1px solid #C8D1DC;border-radius:6px;margin-top:8px;padding:8px;} QGroupBox::title{subcontrol-origin:margin;right:20px;padding:0 5px;}")
         layout = QVBoxLayout(group)
         preview = QLabel("هنوز امضایی ثبت نشده است")
         preview.setAlignment(Qt.AlignCenter)
