@@ -1,6 +1,9 @@
 name: Build Yasna Windows installer
 
 on:
+  push:
+    paths:
+      - ".github/workflows/build-installer.yml"
   workflow_run:
     workflows: ["Build Yasna portable for Windows 7 and later"]
     types: [completed]
@@ -20,7 +23,7 @@ jobs:
           name: Yasna-Portable-Windows-Test
           path: downloaded
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id || 44660294529 }}
       - name: Extract portable application
         shell: pwsh
         run: |
@@ -34,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup --yes --no-progress
-          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          $iscc = "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found." }
           "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Create installer script
