@@ -568,9 +568,35 @@ class YasnaWindow(QMainWindow):
 
         # سخن بزرگان
         wisdom_panel = QFrame()
-        wisdom_panel.setObjectName("panel")
+        wisdom_panel.setObjectName("wisdomPanel")
+        wisdom_panel.setStyleSheet("""
+            QFrame#wisdomPanel {
+                background:#142D4E;
+                border:1px solid #D8B66A;
+                border-radius:13px;
+            }
+            QFrame#wisdomPanel QLabel#sectionTitle {
+                color:#F2D99F;
+                font-size:15px;
+                font-weight:bold;
+            }
+            QFrame#wisdomPanel QLabel#quoteText {
+                color:#FFFFFF;
+                font-size:15px;
+                font-weight:bold;
+            }
+            QFrame#wisdomPanel QLabel#wisdomMeaning {
+                color:#D5DFE9;
+                font-size:10px;
+            }
+            QFrame#wisdomPanel QLabel#wisdomSource {
+                color:#D8B66A;
+                font-weight:bold;
+            }
+        """)
         wisdom_layout = QVBoxLayout(wisdom_panel)
         wisdom_layout.setContentsMargins(18, 11, 18, 11)
+        wisdom_layout.setSpacing(5)
         wisdom_heading = QLabel("سخن بزرگان")
         wisdom_heading.setObjectName("sectionTitle")
         self.quote_text = QLabel("")
@@ -578,11 +604,11 @@ class YasnaWindow(QMainWindow):
         self.quote_text.setWordWrap(True)
         self.quote_text.setAlignment(Qt.AlignCenter)
         self.quote_meaning = QLabel("")
-        self.quote_meaning.setObjectName("muted")
+        self.quote_meaning.setObjectName("wisdomMeaning")
         self.quote_meaning.setWordWrap(True)
         self.quote_meaning.setAlignment(Qt.AlignCenter)
         self.quote_source = QLabel("")
-        self.quote_source.setStyleSheet("color:#A17B38; font-weight:bold;")
+        self.quote_source.setObjectName("wisdomSource")
         self.quote_source.setAlignment(Qt.AlignLeft)
         wisdom_layout.addWidget(wisdom_heading)
         wisdom_layout.addWidget(self.quote_text)
